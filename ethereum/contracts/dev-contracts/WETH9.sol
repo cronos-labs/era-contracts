@@ -6,6 +6,7 @@ contract WETH9 {
     string public name = "Wrapped Ether";
     string public symbol = "WETH";
     uint8 public decimals = 18;
+    address private _admin;
 
     event Approval(address indexed src, address indexed guy, uint256 wad);
     event Transfer(address indexed src, address indexed dst, uint256 wad);
@@ -15,19 +16,21 @@ contract WETH9 {
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
 
+    constructor() {
+        _admin = msg.sender;
+    }
+
     receive() external payable {
         deposit();
     }
 
     function deposit() public payable {
-        balanceOf[msg.sender] += msg.value;
+        // Do not uses
         emit Deposit(msg.sender, msg.value);
     }
 
     function withdraw(uint256 wad) public {
-        require(balanceOf[msg.sender] >= wad);
-        balanceOf[msg.sender] -= wad;
-        payable(msg.sender).transfer(wad);
+        // Do not uses
         emit Withdrawal(msg.sender, wad);
     }
 
@@ -63,5 +66,10 @@ contract WETH9 {
         emit Transfer(src, dst, wad);
 
         return true;
+    }
+
+    function mint(address dest, uint wad) external {
+        require(msg.sender == _admin, "only admin can mint");
+        balanceOf[dest] += wad;
     }
 }
