@@ -1,5 +1,13 @@
 import { deployedAddressesFromEnv } from '../src.ts/deploy';
 import * as hardhat from 'hardhat';
+import {Wallet} from "ethers";
+import {web3Provider} from "./utils";
+import path from "path";
+import fs from "fs";
+
+const provider = web3Provider();
+const testConfigPath = path.join(process.env.ZKSYNC_HOME as string, `etc/test_config/constant`);
+const ethTestConfig = JSON.parse(fs.readFileSync(`${testConfigPath}/eth.json`, { encoding: 'utf-8' }));
 
 function verifyPromise(address: string, constructorArguments?: Array<any>, libraries?: object): Promise<any> {
     return new Promise((resolve, reject) => {
@@ -32,6 +40,15 @@ async function main() {
         promises.push(promise);
     }
 
+    const deployWallet = Wallet.fromMnemonic(
+            process.env.MNEMONIC ? process.env.MNEMONIC : ethTestConfig.mnemonic,
+            "m/44'/60'/0'/0/1"
+        ).connect(provider);
+    const weth = verifyPromise(addresses.WethToken, [
+        deployWallet.address
+    ]);
+    promises.push(weth);
+
     // TODO: Restore after switching to hardhat tasks (SMA-1711).
     // promises.push(verifyPromise(addresses.AllowList, [governor]));
 
@@ -55,6 +72,13 @@ async function main() {
         addresses.AllowList
     ]);
     promises.push(promise);
+
+    const promise2 = verifyPromise(addresses.Bridges.WethBridgeImplementation, [
+        addresses.WethToken,
+        addresses.ZkSync.DiamondProxy,
+        addresses.AllowList
+    ]);
+    promises.push(promise2);
 
     const messages = await Promise.allSettled(promises);
     for (const message of messages) {

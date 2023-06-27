@@ -334,7 +334,7 @@ export class Deployer {
 
     public async deployWethToken(create2Salt: string, ethTxOptions: ethers.providers.TransactionRequest) {
         ethTxOptions.gasLimit ??= 10_000_000;
-        const contractAddress = await this.deployViaCreate2('WETH9', [], create2Salt, ethTxOptions);
+        const contractAddress = await this.deployViaCreate2('WETH9', [this.governorAddress], create2Salt, ethTxOptions);
 
         if (this.verbose) {
             console.log(`CONTRACTS_L1_WETH_TOKEN_ADDR=${contractAddress}`);
@@ -456,7 +456,6 @@ export class Deployer {
 
     public async deployWethBridgeContracts(create2Salt: string, gasPrice?: BigNumberish, nonce?) {
         nonce = nonce ? parseInt(nonce) : await this.deployWallet.getTransactionCount();
-
         await this.deployWethToken(create2Salt, { gasPrice, nonce: nonce++ });
         await this.deployWethBridgeImplementation(create2Salt, { gasPrice, nonce: nonce++ });
         await this.deployWethBridgeProxy(create2Salt, { gasPrice, nonce: nonce++ });

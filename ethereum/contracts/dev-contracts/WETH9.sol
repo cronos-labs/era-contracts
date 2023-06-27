@@ -16,8 +16,8 @@ contract WETH9 {
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
 
-    constructor() {
-        _admin = msg.sender;
+    constructor(address admin) {
+        _admin = admin;
     }
 
     receive() external payable {
