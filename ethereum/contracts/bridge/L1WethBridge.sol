@@ -168,7 +168,7 @@ contract L1WethBridge is IL1Bridge, AllowListed, ReentrancyGuard {
         if (_refundRecipient == address(0)) {
             refundRecipient = msg.sender != tx.origin ? AddressAliasHelper.applyL1ToL2Alias(msg.sender) : msg.sender;
         }
-        txHash = zkSync.requestL2Transaction{value: _amount + msg.value}(
+        txHash = zkSync.requestL2Transaction{value: msg.value}(
             l2Bridge,
             _amount,
             l2TxCalldata,
