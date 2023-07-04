@@ -126,4 +126,6 @@ struct AppStorage {
     uint256 __DEPRECATED_withdrawnAmountInWindow;
     /// @dev A mapping user address => the total deposited amount by the user
     mapping(address => uint256) totalDepositedAmountPerUser;
+    /// @dev gasToken l1 address
+    address gasTokenAddress;
 }

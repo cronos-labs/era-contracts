@@ -3,6 +3,7 @@
 pragma solidity ^0.8.13;
 
 import {L2Log, L2Message} from "../Storage.sol";
+import {TransactionValue} from "../libraries/TransactionValue.sol";
 
 /// @dev The enum that represents the transaction execution status
 /// @param Failure The transaction execution failed
@@ -118,10 +119,8 @@ interface IMailbox {
 
     function requestL2Transaction(
         address _contractL2,
-        uint256 _l2Value,
+        TransactionValue memory _txValue,
         bytes calldata _calldata,
-        uint256 _l2GasLimit,
-        uint256 _l2GasPerPubdataByteLimit,
         bytes[] calldata _factoryDeps,
         address _refundRecipient
     ) external payable returns (bytes32 canonicalTxHash);

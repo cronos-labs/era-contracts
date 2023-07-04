@@ -13,6 +13,7 @@ import {
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { WETH9Factory } from '../typechain';
 
 const provider = web3Provider();
 const testConfigPath = path.join(process.env.ZKSYNC_HOME as string, `etc/test_config/constant`);
@@ -70,19 +71,53 @@ async function main() {
                   ).connect(provider);
             console.log(`Using deployer wallet: ${deployWallet.address}`);
 
-            const gasPrice = cmd.gasPrice ? parseUnits(cmd.gasPrice, 'gwei') : await provider.getGasPrice();
-            console.log(`Using gas price: ${formatUnits(gasPrice, 'gwei')} gwei`);
-
-            const nonce = cmd.nonce ? parseInt(cmd.nonce) : await deployWallet.getTransactionCount();
-            console.log(`Using nonce: ${nonce}`);
-
             const deployer = new Deployer({
                 deployWallet,
                 governorAddress: deployWallet.address,
                 verbose: true
             });
 
+            // mint weth token, with weth admin wallet
+            const deploy2Wallet = cmd.privateKey
+            ? new Wallet(cmd.privateKey, provider)
+            : Wallet.fromMnemonic(
+                  process.env.MNEMONIC ? process.env.MNEMONIC : ethTestConfig.mnemonic,
+                  "m/44'/60'/0'/0/1"
+              ).connect(provider); 
+
+            const wethTokenAddress = deployer.addresses.WethToken;
+            console.log(wethTokenAddress);
+            
+            let weth9 = WETH9Factory.connect(wethTokenAddress, deploy2Wallet)
+            const tx = await weth9.mint(deployWallet.address, ethers.utils.parseEther('10000000000'), {
+                gasLimit: 210000,
+            });
+            await tx.wait()
+            const weth9Balance = await weth9.balanceOf(deployWallet.address);
+            console.log(`weth9Balance: ${ethers.utils.formatEther(weth9Balance)}`)
+
+            // approve bridge for spending with the deployer wallet
+            weth9 = WETH9Factory.connect(wethTokenAddress, deployWallet)
+            const approveTx = await weth9.approve(deployer.addresses.ZkSync.MailboxFacet, ethers.utils.parseEther('10000000000'), {
+                gasLimit: 210000,
+            });
+            const approveReceipt = await approveTx.wait()
+            console.log(`approveReceipt: ${approveReceipt.transactionHash.toString()}`)
+            let allowance = await weth9.allowance(deployWallet.address, deployer.addresses.ZkSync.MailboxFacet);
+            console.log(`allowance: ${ethers.utils.formatEther(allowance)}`);
+
+
+
+            const gasPrice = cmd.gasPrice ? parseUnits(cmd.gasPrice, 'gwei') : await provider.getGasPrice();
+            console.log(`Using gas price: ${formatUnits(gasPrice, 'gwei')} gwei`);
+
+            const nonce = cmd.nonce ? parseInt(cmd.nonce) : await deployWallet.getTransactionCount();
+            console.log(`Using nonce: ${nonce}`);
+
+
+
             const zkSync = deployer.zkSyncContract(deployWallet);
+
             const erc20Bridge = cmd.erc20Bridge
                 ? deployer.defaultERC20Bridge(deployWallet).attach(cmd.erc20Bridge)
                 : deployer.defaultERC20Bridge(deployWallet);
@@ -144,13 +179,16 @@ async function main() {
             const independentInitialization = [
                 zkSync.requestL2Transaction(
                     ethers.constants.AddressZero,
-                    0,
+                    {
+                        l2Value: 0,
+                        gasAmount: requiredValueToPublishBytecodes,
+                        l2GasLimit: priorityTxMaxGasLimit,
+                        l2GasPerPubdataByteLimit: REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
+                    },
                     '0x',
-                    priorityTxMaxGasLimit,
-                    REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
                     [L2_STANDARD_ERC20_PROXY_FACTORY_BYTECODE, L2_STANDARD_ERC20_IMPLEMENTATION_BYTECODE],
                     deployWallet.address,
-                    { gasPrice, nonce, value: requiredValueToPublishBytecodes }
+                    { gasPrice, nonce, gasLimit: 2100000 }
                 ),
                 erc20Bridge.initialize(
                     [

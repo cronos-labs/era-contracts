@@ -7,6 +7,7 @@ import "../facets/Mailbox.sol";
 import "../libraries/Diamond.sol";
 import "../../common/libraries/L2ContractHelper.sol";
 import "../../common/L2ContractAddresses.sol";
+import {TransactionValue} from "../libraries/TransactionValue.sol";
 
 interface IOldContractDeployer {
     struct ForceDeployment {
@@ -30,10 +31,8 @@ contract DiamondUpgradeInit4 is MailboxFacet {
         _requestL2Transaction(
             L2_FORCE_DEPLOYER_ADDR,
             L2_DEPLOYER_SYSTEM_CONTRACT_ADDR,
-            0,
+            TransactionValue(0, 0, $(PRIORITY_TX_MAX_GAS_LIMIT),REQUIRED_L2_GAS_PRICE_PER_PUBDATA),
             _upgradeDeployerCalldata,
-            $(PRIORITY_TX_MAX_GAS_LIMIT),
-            REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
             _factoryDeps,
             true,
             address(0)
@@ -43,10 +42,8 @@ contract DiamondUpgradeInit4 is MailboxFacet {
         _requestL2Transaction(
             L2_FORCE_DEPLOYER_ADDR,
             L2_DEPLOYER_SYSTEM_CONTRACT_ADDR,
-            0,
+            TransactionValue(0, 0, $(PRIORITY_TX_MAX_GAS_LIMIT), REQUIRED_L2_GAS_PRICE_PER_PUBDATA),
             _upgradeSystemContractsCalldata,
-            $(PRIORITY_TX_MAX_GAS_LIMIT),
-            REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
             _factoryDeps,
             true,
             address(0)

@@ -150,7 +150,8 @@ contract L1WethBridge is IL1Bridge, AllowListed, ReentrancyGuard {
         uint256 _amount,
         uint256 _l2TxGasLimit,
         uint256 _l2TxGasPerPubdataByte,
-        address _refundRecipient
+        address _refundRecipient,
+        uint256 _gasAmount
     ) external payable nonReentrant senderCanCallFunction(allowList) returns (bytes32 txHash) {
         require(_l1Token == l1WethAddress, "Invalid L1 token address");
         require(_amount != 0, "Amount can not be zero");
@@ -168,12 +169,10 @@ contract L1WethBridge is IL1Bridge, AllowListed, ReentrancyGuard {
         if (_refundRecipient == address(0)) {
             refundRecipient = msg.sender != tx.origin ? AddressAliasHelper.applyL1ToL2Alias(msg.sender) : msg.sender;
         }
-        txHash = zkSync.requestL2Transaction{value: msg.value}(
+        txHash = zkSync.requestL2Transaction(
             l2Bridge,
-            _amount,
+            TransactionValue(_amount, _gasAmount, _l2TxGasLimit, _l2TxGasPerPubdataByte),
             l2TxCalldata,
-            _l2TxGasLimit,
-            _l2TxGasPerPubdataByte,
             new bytes[](0),
             refundRecipient
         );

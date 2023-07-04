@@ -78,13 +78,16 @@ export async function create2DeployFromL1(
 
     await zkSync.requestL2Transaction(
         DEPLOYER_SYSTEM_CONTRACT_ADDRESS,
-        0,
+        {
+            l2Value: 0,
+            gasAmount: expectedCost,
+            l2GasLimit: l2GasLimit,
+            l2GasPerPubdataByteLimit: REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
+        },
         calldata,
-        l2GasLimit,
-        REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
         [bytecode],
         wallet.address,
-        { value: expectedCost, gasPrice }
+        { gasPrice }
     );
 }
 

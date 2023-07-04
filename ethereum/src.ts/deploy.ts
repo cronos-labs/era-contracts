@@ -141,7 +141,8 @@ export class Deployer {
             false, // isPorterAvailable
             L2_BOOTLOADER_BYTECODE_HASH,
             L2_DEFAULT_ACCOUNT_BYTECODE_HASH,
-            priorityTxMaxGasLimit
+            priorityTxMaxGasLimit,
+            this.addresses.WethToken,
         ]);
 
         return diamondCut(facetCuts, this.addresses.ZkSync.DiamondInit, diamondInitCalldata);
@@ -456,7 +457,7 @@ export class Deployer {
 
     public async deployWethBridgeContracts(create2Salt: string, gasPrice?: BigNumberish, nonce?) {
         nonce = nonce ? parseInt(nonce) : await this.deployWallet.getTransactionCount();
-        await this.deployWethToken(create2Salt, { gasPrice, nonce: nonce++ });
+        // await this.deployWethToken(create2Salt, { gasPrice, nonce: nonce++ });
         await this.deployWethBridgeImplementation(create2Salt, { gasPrice, nonce: nonce++ });
         await this.deployWethBridgeProxy(create2Salt, { gasPrice, nonce: nonce++ });
     }
