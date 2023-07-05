@@ -68,7 +68,8 @@
     "upgrade-2": "ts-node scripts/upgrades/upgrade-2.ts",
     "upgrade-3": "ts-node scripts/upgrades/upgrade-3.ts",
     "upgrade-4": "ts-node scripts/upgrades/upgrade-4.ts",
-    "upgrade-5": "ts-node scripts/upgrades/upgrade-5.ts"
+    "upgrade-5": "ts-node scripts/upgrades/upgrade-5.ts",
+    "test:bridge": "ts-node src.ts/test-bridge.ts"
   },
   "dependencies": {
     "dotenv": "^16.0.3"
