@@ -193,6 +193,7 @@ async function main() {
                 zkSync.requestL2Transaction(
                     ethers.constants.AddressZero,
                     {
+                        l1Value: requiredValueToPublishBytecodes,
                         l2Value: 0,
                         gasAmount: requiredValueToPublishBytecodes,
                         l2GasLimit: priorityTxMaxGasLimit,

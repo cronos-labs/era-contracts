@@ -217,10 +217,9 @@ contract MailboxFacet is Base, IMailbox {
         }
 
         // prevent stack too deep error
-        uint256 totalAmount = 0;
         {
-            totalAmount = _txValue.l2Value + _txValue.gasAmount;
-            IERC20(s.gasTokenAddress).safeTransferFrom(tx.origin, address(this), totalAmount);
+            require(_txValue.l1Value >= _txValue.l2Value + _txValue.gasAmount, "not enough l1Value");
+            IERC20(s.gasTokenAddress).safeTransferFrom(tx.origin, address(this), _txValue.l1Value);
         }
 
         // Enforcing that `_l2GasPerPubdataByteLimit` equals to a certain constant number. This is needed
@@ -232,7 +231,7 @@ contract MailboxFacet is Base, IMailbox {
 
         // The L1 -> L2 transaction may be failed and funds will be sent to the `_refundRecipient`,
         // so we use `msg.value` instead of `_l2Value` as the bridged amount.
-        _verifyDepositLimit(msg.sender, _txValue.l2Value);
+        _verifyDepositLimit(msg.sender, _txValue.l1Value);
         canonicalTxHash = _requestL2Transaction(
             sender,
             _contractL2,
@@ -290,7 +289,7 @@ contract MailboxFacet is Base, IMailbox {
         params.expirationTimestamp = expirationTimestamp;
         params.l2GasLimit = _txValue.l2GasLimit;
         params.l2GasPricePerPubdata = _txValue.l2GasPerPubdataByteLimit;
-        params.valueToMint = _txValue.l2Value * 2 + _txValue.gasAmount;
+        params.valueToMint = _txValue.l1Value;
         params.refundRecipient = refundRecipient;
 
         canonicalTxHash = _writePriorityOp(params, _calldata, _factoryDeps);
