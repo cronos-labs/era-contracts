@@ -118,7 +118,7 @@ interface IMailbox {
     ) external;
 
     function requestL2Transaction(
-        address _contractL2,
+        uint256 _l1Value,
         TransactionValue memory _txValue,
         bytes calldata _calldata,
         bytes[] calldata _factoryDeps,

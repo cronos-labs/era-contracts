@@ -77,9 +77,9 @@ export async function create2DeployFromL1(
     const expectedCost = await zkSync.l2TransactionBaseCost(gasPrice, l2GasLimit, REQUIRED_L2_GAS_PRICE_PER_PUBDATA);
 
     await zkSync.requestL2Transaction(
-        DEPLOYER_SYSTEM_CONTRACT_ADDRESS,
+        expectedCost,
         {
-            l1Value: expectedCost,
+            contractL2: DEPLOYER_SYSTEM_CONTRACT_ADDRESS,
             l2Value: 0,
             gasAmount: expectedCost,
             l2GasLimit: l2GasLimit,

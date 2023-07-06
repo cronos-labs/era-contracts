@@ -38,8 +38,8 @@ library BridgeInitializationHelper {
             (bytes32(0), _bytecodeHash, _constructorData)
         );
         _zkSync.requestL2Transaction(
-            L2_DEPLOYER_SYSTEM_CONTRACT_ADDR,
-            TransactionValue(_deployTransactionFee, 0, _deployTransactionFee, DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,REQUIRED_L2_GAS_PRICE_PER_PUBDATA ),
+            _deployTransactionFee,
+            TransactionValue(L2_DEPLOYER_SYSTEM_CONTRACT_ADDR, 0, _deployTransactionFee, DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,REQUIRED_L2_GAS_PRICE_PER_PUBDATA ),
             deployCalldata,
             _factoryDeps,
             msg.sender

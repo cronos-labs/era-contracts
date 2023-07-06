@@ -191,9 +191,9 @@ async function main() {
 
             const independentInitialization = [
                 zkSync.requestL2Transaction(
-                    ethers.constants.AddressZero,
+                    requiredValueToPublishBytecodes,
                     {
-                        l1Value: requiredValueToPublishBytecodes,
+                        contractL2: ethers.constants.AddressZero,
                         l2Value: 0,
                         gasAmount: requiredValueToPublishBytecodes,
                         l2GasLimit: priorityTxMaxGasLimit,

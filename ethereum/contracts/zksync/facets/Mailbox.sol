@@ -95,12 +95,7 @@ contract MailboxFacet is Base, IMailbox {
     /// @notice Transfer ether from the contract to the receiver
     /// @dev Reverts only if the transfer call failed
     function _withdrawFunds(address _to, uint256 _amount) internal {
-        bool callSuccess;
-        // Low-level assembly call, to avoid any memory copying (save gas)
-        assembly {
-            callSuccess := call(gas(), _to, _amount, 0, 0, 0, 0)
-        }
-        require(callSuccess, "pz");
+        IERC20(s.gasTokenAddress).safeTransferFrom(address(this), _to, _amount);
     }
 
     /// @dev Prove that a specific L2 log was sent in a specific L2 block number
@@ -195,7 +190,7 @@ contract MailboxFacet is Base, IMailbox {
     }
 
     /// @notice Request execution of L2 transaction from L1.
-    /// @param _contractL2 The L2 receiver address
+    /// @param _l1Value The L1 value send to this transaction 
     /// @param _txValue `msg.value` of L2 transaction
     /// @param _calldata The input of the L2 transaction
     /// @param _factoryDeps An array of L2 bytecodes that will be marked as known on L2
@@ -203,7 +198,7 @@ contract MailboxFacet is Base, IMailbox {
     /// it will also be the address to receive `_l2Value`.
     /// @return canonicalTxHash The hash of the requested L2 transaction. This hash can be used to follow the transaction status
     function requestL2Transaction(
-        address _contractL2,
+        uint256 _l1Value,
         TransactionValue memory _txValue,
         bytes calldata _calldata,
         bytes[] calldata _factoryDeps,
@@ -218,8 +213,8 @@ contract MailboxFacet is Base, IMailbox {
 
         // prevent stack too deep error
         {
-            require(_txValue.l1Value >= _txValue.l2Value + _txValue.gasAmount, "not enough l1Value");
-            IERC20(s.gasTokenAddress).safeTransferFrom(tx.origin, address(this), _txValue.l1Value);
+            require(_l1Value >= _txValue.l2Value + _txValue.gasAmount, "not enough l1Value");
+            IERC20(s.gasTokenAddress).safeTransferFrom(tx.origin, address(this), _l1Value);
         }
 
         // Enforcing that `_l2GasPerPubdataByteLimit` equals to a certain constant number. This is needed
@@ -231,10 +226,10 @@ contract MailboxFacet is Base, IMailbox {
 
         // The L1 -> L2 transaction may be failed and funds will be sent to the `_refundRecipient`,
         // so we use `msg.value` instead of `_l2Value` as the bridged amount.
-        _verifyDepositLimit(msg.sender, _txValue.l1Value);
+        _verifyDepositLimit(msg.sender, _l1Value);
         canonicalTxHash = _requestL2Transaction(
             sender,
-            _contractL2,
+            _l1Value,
             _txValue,
             _calldata,
             _factoryDeps,
@@ -253,7 +248,7 @@ contract MailboxFacet is Base, IMailbox {
 
     function _requestL2Transaction(
         address _sender,
-        address _contractAddressL2,
+        uint256 _l1Value,
         TransactionValue memory _txValue,
         bytes calldata _calldata,
         bytes[] calldata _factoryDeps,
@@ -285,11 +280,11 @@ contract MailboxFacet is Base, IMailbox {
         params.sender = _sender;
         params.txId = txId;
         params.l2Value = _txValue.l2Value;
-        params.contractAddressL2 = _contractAddressL2;
+        params.contractAddressL2 = _txValue.contractL2;
         params.expirationTimestamp = expirationTimestamp;
         params.l2GasLimit = _txValue.l2GasLimit;
         params.l2GasPricePerPubdata = _txValue.l2GasPerPubdataByteLimit;
-        params.valueToMint = _txValue.l1Value;
+        params.valueToMint = _l1Value;
         params.refundRecipient = refundRecipient;
 
         canonicalTxHash = _writePriorityOp(params, _calldata, _factoryDeps);
