@@ -156,9 +156,6 @@ contract L1WethBridge is IL1Bridge, AllowListed, ReentrancyGuard {
         require(_l1Token == l1WethAddress, "Invalid L1 token address");
         require(_amount != 0, "Amount can not be zero");
 
-        // Deposit WETH tokens from the depositor address to the smart contract address
-        IERC20(l1WethAddress).safeTransferFrom(msg.sender, address(this), _amount);
-
         // Request the finalization of the deposit on the L2 side
         bytes memory l2TxCalldata = _getDepositL2Calldata(msg.sender, _l2Receiver, l1WethAddress, _amount);
 

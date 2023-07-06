@@ -220,8 +220,7 @@ contract MailboxFacet is Base, IMailbox {
         uint256 totalAmount = 0;
         {
             totalAmount = _txValue.l2Value + _txValue.gasAmount;
-            // TODO: not working
-            // IERC20(s.gasTokenAddress).safeTransferFrom(tx.sender, address(this), totalAmount);
+            IERC20(s.gasTokenAddress).safeTransferFrom(tx.origin, address(this), totalAmount);
         }
 
         // Enforcing that `_l2GasPerPubdataByteLimit` equals to a certain constant number. This is needed

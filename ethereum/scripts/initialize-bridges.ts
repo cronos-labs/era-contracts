@@ -13,7 +13,7 @@ import {
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { WETH9Factory } from '../typechain';
+import { WETH9, WETH9Factory } from '../typechain';
 
 const provider = web3Provider();
 const testConfigPath = path.join(process.env.ZKSYNC_HOME as string, `etc/test_config/constant`);
@@ -52,6 +52,16 @@ const L2_STANDARD_ERC20_PROXY_FACTORY_BYTECODE = readBytecode(
 const L2_ERC20_BRIDGE_INTERFACE = readInterface(l2BridgeArtifactsPath, 'L2ERC20Bridge');
 const DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT = getNumberFromEnv('CONTRACTS_DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT');
 
+async function approveSpendingGasToken(weth9: WETH9, wallet: Wallet, spender: string, amount: ethers.BigNumber) {
+    weth9 = weth9.connect(wallet);
+    const approveTx = await weth9.approve(spender, amount, {
+        gasLimit: 210000,
+    });
+    await approveTx.wait()
+    let allowance = await weth9.allowance(wallet.address, spender);
+    console.log(`Wallet ${wallet.address} allowance for spender ${spender}: ${ethers.utils.formatEther(allowance)}`);
+}
+
 async function main() {
     const program = new Command();
 
@@ -85,27 +95,34 @@ async function main() {
                   "m/44'/60'/0'/0/1"
               ).connect(provider); 
 
+            const zkSync = deployer.zkSyncContract(deployWallet);
+
             const wethTokenAddress = deployer.addresses.WethToken;
             console.log(wethTokenAddress);
             
             let weth9 = WETH9Factory.connect(wethTokenAddress, deploy2Wallet)
+            // mint for deployer wallet
             const tx = await weth9.mint(deployWallet.address, ethers.utils.parseEther('10000000000'), {
                 gasLimit: 210000,
             });
             await tx.wait()
             const weth9Balance = await weth9.balanceOf(deployWallet.address);
-            console.log(`weth9Balance: ${ethers.utils.formatEther(weth9Balance)}`)
+            console.log(`[deployer]weth9 Balance: ${ethers.utils.formatEther(weth9Balance)}`)
 
-            // approve bridge for spending with the deployer wallet
-            weth9 = WETH9Factory.connect(wethTokenAddress, deployWallet)
-            const approveTx = await weth9.approve(deployer.addresses.ZkSync.MailboxFacet, ethers.utils.parseEther('10000000000'), {
+            // mint for deployer2 wallet
+            const tx2 = await weth9.mint(deploy2Wallet.address, ethers.utils.parseEther('10000000000'), {
                 gasLimit: 210000,
             });
-            const approveReceipt = await approveTx.wait()
-            console.log(`approveReceipt: ${approveReceipt.transactionHash.toString()}`)
-            let allowance = await weth9.allowance(deployWallet.address, deployer.addresses.ZkSync.MailboxFacet);
-            console.log(`allowance: ${ethers.utils.formatEther(allowance)}`);
+            await tx2.wait()
+            const weth9Balance2 = await weth9.balanceOf(deploy2Wallet.address);
+            console.log(`[deployer2]weth9Balance2: ${ethers.utils.formatEther(weth9Balance2)}`)
 
+            // approve bridge for spending with the deployer wallet
+
+            await approveSpendingGasToken(weth9, deployWallet, deployer.addresses.ZkSync.MailboxFacet, ethers.constants.MaxUint256);
+            await approveSpendingGasToken(weth9, deployWallet, zkSync.address, ethers.constants.MaxUint256);
+            await approveSpendingGasToken(weth9, deploy2Wallet, deployer.addresses.ZkSync.MailboxFacet, ethers.constants.MaxUint256);
+            await approveSpendingGasToken(weth9, deploy2Wallet, zkSync.address, ethers.constants.MaxUint256);
 
 
             const gasPrice = cmd.gasPrice ? parseUnits(cmd.gasPrice, 'gwei') : await provider.getGasPrice();
@@ -113,10 +130,6 @@ async function main() {
 
             const nonce = cmd.nonce ? parseInt(cmd.nonce) : await deployWallet.getTransactionCount();
             console.log(`Using nonce: ${nonce}`);
-
-
-
-            const zkSync = deployer.zkSyncContract(deployWallet);
 
             const erc20Bridge = cmd.erc20Bridge
                 ? deployer.defaultERC20Bridge(deployWallet).attach(cmd.erc20Bridge)
