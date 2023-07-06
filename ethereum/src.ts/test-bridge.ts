@@ -13,6 +13,7 @@ const MAILBOX_ADDRESS = process.env.CONTRACTS_MAILBOX_FACET_ADDR!;
 const ALLOW_LIST_ADDRESS = process.env.CONTRACTS_L1_ALLOW_LIST_ADDR!;
 const ZKSYNC_ADDRESS = process.env.CONTRACTS_DIAMOND_PROXY_ADDR!;
 const L2WETH_ADDRESS = process.env.CONTRACTS_L2_WETH_IMPLEMENTATION_ADDR!;
+const L2ETH_ADDRESS = "0x000000000000000000000000000000000000800a";
 
 const DERIVE_PATH = "m/44'/60'/0'/0/1";
 
@@ -20,7 +21,6 @@ const prepare = async () => {
     let wallet = ethers.Wallet.fromMnemonic(MNEMONIC, DERIVE_PATH);
     console.log("wallet: ", wallet.address);
     const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
-    wallet = wallet.connect(provider);
     wallet = wallet.connect(provider);
     console.log("balance: ", ethers.utils.formatEther(await wallet.getBalance()));
     const WETH = WETH9Factory.connect(WETH_ADDRESS, wallet);
@@ -63,6 +63,10 @@ const prepare = async () => {
 
     let v = await AllowList.canCall(wallet.address, MAILBOX_ADDRESS, MailBox.interface.getSighash("requestL2Transaction"))
     console.log("canCall: ", v);
+
+    v = await AllowList.canCall(wallet.address, ZKSYNC_ADDRESS, MailBox.interface.getSighash("finalizeEthWithdrawal"))
+    console.log("canCall finalizeEthWithdrawal: ", v);
+
     v = await AllowList.canCall(wallet.address, L1WethBridge.address, L1WethBridge.interface.getSighash("deposit"))
     console.log("canCall deposit: ", v);
 
@@ -214,30 +218,85 @@ const testMailBox = async () => {
 }
 
 const getBalance = async () => {
-
     let wallet = ZKWallet.fromMnemonic(MNEMONIC, DERIVE_PATH);
-    
-    const l2Provider = new ZkSyncProvider("http://localhost:3050");
-
+    const l2Provider = new ZkSyncProvider("http://127.0.0.1:3050");
     let balance = await l2Provider.getBalance(wallet.address)
-    console.log("balance: ", ethers.utils.formatEther(balance));
+    console.log("balance on l2: ", ethers.utils.formatEther(balance));
 
     let wethBalance = await l2Provider.getBalance(wallet.address, "latest", L2WETH_ADDRESS);
-    console.log("wethBalance: ", ethers.utils.formatEther(wethBalance));
+    console.log("wethBalance on l2: ", ethers.utils.formatEther(wethBalance));
 
-    let ethBalance = await l2Provider.getBalance(wallet.address, "latest", "0x000000000000000000000000000000000000800a");
-    console.log("ethBalance: ", ethers.utils.formatEther(ethBalance));
-    
+    let ethBalance = await l2Provider.getBalance(wallet.address, "latest", L2ETH_ADDRESS);
+    console.log("ethBalance on l2: ", ethers.utils.formatEther(ethBalance));
+
+    let l1wallet = ethers.Wallet.fromMnemonic(MNEMONIC, DERIVE_PATH);
+    const l1provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
+    l1wallet = l1wallet.connect(l1provider);
+    const WETH = WETH9Factory.connect(WETH_ADDRESS, l1wallet);
+
+    const l1Balance = await WETH.balanceOf(wallet.address);
+    console.log("balance on l1: ", ethers.utils.formatEther(l1Balance), "WETH");
+
+    const proxyBalance = await WETH.balanceOf(process.env.CONTRACTS_DIAMOND_PROXY_ADDR);
+    console.log("Diamon proxy WETH balance: ", ethers.utils.formatEther(proxyBalance), "WETH");
 
 }
 
+const bridgeL2ToL1 = async () => {
+    let zkwallet = ZKWallet.fromMnemonic(MNEMONIC, DERIVE_PATH);
+    console.log("wallet: ", zkwallet.address);
+    const l2Provider = new ZkSyncProvider("http://127.0.0.1:3050");
+    const l1Provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
+    zkwallet = zkwallet.connect(l2Provider);
+    zkwallet = zkwallet.connectToL1(l1Provider);
+    const withdrawL2 = await zkwallet.withdraw({
+        token: L2ETH_ADDRESS,
+        amount: ethers.utils.parseEther("1"),
+        to: zkwallet.address
+    });
 
-// prepare().then(() => {main()});
+    const receipt = await withdrawL2.waitFinalize();
+    console.log("receipt: ", receipt.transactionHash);
+
+    const { l1BatchNumber, l2MessageIndex, l2TxNumberInBlock, message, sender, proof } =
+        await zkwallet.finalizeWithdrawalParams(receipt.transactionHash, 0);
+
+    console.log("l1BatchNumber: ", l1BatchNumber);
+    console.log("l2MessageIndex: ", l2MessageIndex);
+    console.log("l2TxNumberInBlock: ", l2TxNumberInBlock);
+    console.log("message: ", message);
+    console.log("sender: ", sender);
+    console.log("proof: ", proof);
+
+    let wallet = ethers.Wallet.fromMnemonic(MNEMONIC, DERIVE_PATH);
+    const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
+    wallet = wallet.connect(provider);
+    const zkSync = IZkSyncFactory.connect(ZKSYNC_ADDRESS, wallet);
+
+    let tx = await zkSync.finalizeEthWithdrawal(
+        l1BatchNumber,
+        l2MessageIndex,
+        l2TxNumberInBlock,
+        message,
+        proof,
+        {
+            gasLimit: 410000,
+        }
+    )
+
+    let finalizereceipt = await tx.wait();
+    console.log(finalizereceipt);
+}
+
+
+//prepare().then(() => {main()});
 
 // mint token, set approval, set allowlist
-// prepare();
+//prepare();
 
 // call the bridge function
-// main();
+//main();
 
 getBalance();
+
+//bridgeL2ToL1();
