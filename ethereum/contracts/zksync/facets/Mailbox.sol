@@ -203,7 +203,7 @@ contract MailboxFacet is Base, IMailbox {
         bytes calldata _calldata,
         bytes[] calldata _factoryDeps,
         address _refundRecipient
-    ) external payable nonReentrant senderCanCallFunction(s.allowList) returns (bytes32 canonicalTxHash) {
+    ) external nonReentrant senderCanCallFunction(s.allowList) returns (bytes32 canonicalTxHash) {
         // Change the sender address if it is a smart contract to prevent address collision between L1 and L2.
         // Please note, currently zkSync address derivation is different from Ethereum one, but it may be changed in the future.
         address sender = msg.sender;

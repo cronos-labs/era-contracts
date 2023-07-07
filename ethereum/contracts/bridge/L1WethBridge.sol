@@ -41,7 +41,7 @@ contract L1WethBridge is IL1Bridge, AllowListed, ReentrancyGuard {
     event EthReceived(address indexed sender, uint256 amount);
 
     /// @dev The address of the WETH token on L1
-    address payable public immutable l1WethAddress;
+    address public immutable l1WethAddress;
 
     /// @dev The smart contract that manages the list with permission to call contract functions
     IAllowList public immutable allowList;
@@ -152,7 +152,7 @@ contract L1WethBridge is IL1Bridge, AllowListed, ReentrancyGuard {
         uint256 _l2TxGasPerPubdataByte,
         address _refundRecipient,
         uint256 _gasAmount
-    ) external payable nonReentrant senderCanCallFunction(allowList) returns (bytes32 txHash) {
+    ) external nonReentrant senderCanCallFunction(allowList) returns (bytes32 txHash) {
         require(_l1Token == l1WethAddress, "Invalid L1 token address");
         require(_amount != 0, "Amount can not be zero");
 

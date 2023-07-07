@@ -123,7 +123,7 @@ interface IMailbox {
         bytes calldata _calldata,
         bytes[] calldata _factoryDeps,
         address _refundRecipient
-    ) external payable returns (bytes32 canonicalTxHash);
+    ) external returns (bytes32 canonicalTxHash);
 
     function l2TransactionBaseCost(
         uint256 _gasPrice,
