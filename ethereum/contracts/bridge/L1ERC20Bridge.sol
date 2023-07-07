@@ -155,6 +155,7 @@ contract L1ERC20Bridge is IL1Bridge, IL1BridgeLegacy, AllowListed, ReentrancyGua
     /// @param _l2TxGasLimit The L2 gas limit to be used in the corresponding L2 transaction
     /// @param _l2TxGasPerPubdataByte The gasPerPubdataByteLimit to be used in the corresponding L2 transaction
     /// @param _refundRecipient The address on L2 that will receive the refund for the transaction. If the transaction fails,
+    /// @param _l1Amount The gas token amount to be transferred from L1 to L2, it should be enough to cover the gas cost of the L2 transaction
     /// it will also be the address to receive `_l2Value`. If zero, the refund will be sent to the sender of the transaction.
     /// @return l2TxHash The L2 transaction hash of deposit finalization
     function deposit(
@@ -164,7 +165,7 @@ contract L1ERC20Bridge is IL1Bridge, IL1BridgeLegacy, AllowListed, ReentrancyGua
         uint256 _l2TxGasLimit,
         uint256 _l2TxGasPerPubdataByte,
         address _refundRecipient,
-        uint256 _gasAmount
+        uint256 _l1Amount
     ) public payable nonReentrant senderCanCallFunction(allowList) returns (bytes32 l2TxHash) {
         require(_amount != 0, "2T"); // empty deposit amount
         uint256 amount = _depositFunds(msg.sender, IERC20(_l1Token), _amount);
@@ -181,8 +182,8 @@ contract L1ERC20Bridge is IL1Bridge, IL1BridgeLegacy, AllowListed, ReentrancyGua
             refundRecipient = msg.sender != tx.origin ? AddressAliasHelper.applyL1ToL2Alias(msg.sender) : msg.sender;
         }
         l2TxHash = zkSync.requestL2Transaction(
-            _gasAmount,
-            L2TransactionValue(l2Bridge, 0, _gasAmount, _l2TxGasLimit, _l2TxGasPerPubdataByte), // L2 msg.value
+            _l1Amount,
+            L2TransactionValue(l2Bridge, 0, _l1Amount, _l2TxGasLimit, _l2TxGasPerPubdataByte), // L2 msg.value
             l2TxCalldata,
             new bytes[](0),
             refundRecipient
