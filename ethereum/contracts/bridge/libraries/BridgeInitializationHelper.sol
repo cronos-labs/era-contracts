@@ -7,6 +7,7 @@ import "../../vendor/AddressAliasHelper.sol";
 import "../../common/libraries/L2ContractHelper.sol";
 import {L2_DEPLOYER_SYSTEM_CONTRACT_ADDR} from "../../common/L2ContractAddresses.sol";
 import "../../common/interfaces/IL2ContractDeployer.sol";
+import {L2TransactionValue} from "../../zksync/libraries/L2TransactionValue.sol";
 
 /// @author Matter Labs
 /// @dev A helper library for initializing L2 bridges in zkSync L2 network.
@@ -37,12 +38,10 @@ library BridgeInitializationHelper {
             IL2ContractDeployer.create2,
             (bytes32(0), _bytecodeHash, _constructorData)
         );
-        _zkSync.requestL2Transaction{value: _deployTransactionFee}(
-            L2_DEPLOYER_SYSTEM_CONTRACT_ADDR,
-            0,
+        _zkSync.requestL2Transaction(
+            _deployTransactionFee,
+            L2TransactionValue(L2_DEPLOYER_SYSTEM_CONTRACT_ADDR, 0, _deployTransactionFee, DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,REQUIRED_L2_GAS_PRICE_PER_PUBDATA ),
             deployCalldata,
-            DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
-            REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
             _factoryDeps,
             msg.sender
         );

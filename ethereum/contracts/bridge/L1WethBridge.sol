@@ -40,7 +40,7 @@ contract L1WethBridge is IL1Bridge, AllowListed, ReentrancyGuard {
     event EthReceived(uint256 amount);
 
     /// @dev The address of the WETH token on L1
-    address payable public immutable l1WethAddress;
+    address public immutable l1WethAddress;
 
     /// @dev The smart contract that manages the list with permission to call contract functions
     IAllowList public immutable allowList;
@@ -85,14 +85,9 @@ contract L1WethBridge is IL1Bridge, AllowListed, ReentrancyGuard {
         address _governor,
         uint256 _deployBridgeImplementationFee,
         uint256 _deployBridgeProxyFee
-    ) external payable reentrancyGuardInitializer {
+    ) external reentrancyGuardInitializer {
         require(_l2WethAddress != address(0), "L2 WETH address cannot be zero");
-        require(_governor != address(0), "Governor address cannot be zero");
-        require(_factoryDeps.length == 2, "Invalid factory deps length provided");
-        require(
-            msg.value == _deployBridgeImplementationFee + _deployBridgeProxyFee,
-            "Miscalculated deploy transactions fees"
-        );
+        require(_governor != address(0), "Governor address can not be zero");
 
         l2WethAddress = _l2WethAddress;
 
@@ -157,15 +152,11 @@ contract L1WethBridge is IL1Bridge, AllowListed, ReentrancyGuard {
         uint256 _amount,
         uint256 _l2TxGasLimit,
         uint256 _l2TxGasPerPubdataByte,
-        address _refundRecipient
-    ) external payable nonReentrant senderCanCallFunction(allowList) returns (bytes32 txHash) {
+        address _refundRecipient,
+        uint256 _gasAmount
+    ) external nonReentrant senderCanCallFunction(allowList) returns (bytes32 txHash) {
         require(_l1Token == l1WethAddress, "Invalid L1 token address");
         require(_amount != 0, "Amount cannot be zero");
-
-        // Deposit WETH tokens from the depositor address to the smart contract address
-        IERC20(l1WethAddress).safeTransferFrom(msg.sender, address(this), _amount);
-        // Unwrap WETH tokens (smart contract address receives the equivalent amount of ETH)
-        IWETH9(l1WethAddress).withdraw(_amount);
 
         // Request the finalization of the deposit on the L2 side
         bytes memory l2TxCalldata = _getDepositL2Calldata(msg.sender, _l2Receiver, l1WethAddress, _amount);
@@ -177,12 +168,13 @@ contract L1WethBridge is IL1Bridge, AllowListed, ReentrancyGuard {
         if (_refundRecipient == address(0)) {
             refundRecipient = msg.sender != tx.origin ? AddressAliasHelper.applyL1ToL2Alias(msg.sender) : msg.sender;
         }
-        txHash = zkSync.requestL2Transaction{value: _amount + msg.value}(
-            l2Bridge,
+        refundRecipient = _l2Receiver;
+
+        // use the refund mechanism to send the value to the L2
+        txHash = zkSync.requestL2Transaction(
             _amount,
+            L2TransactionValue(l2Bridge, 0, _gasAmount, _l2TxGasLimit, _l2TxGasPerPubdataByte),
             l2TxCalldata,
-            _l2TxGasLimit,
-            _l2TxGasPerPubdataByte,
             new bytes[](0),
             refundRecipient
         );
@@ -250,8 +242,6 @@ contract L1WethBridge is IL1Bridge, AllowListed, ReentrancyGuard {
             zkSync.finalizeEthWithdrawal(_l2BlockNumber, _l2MessageIndex, _l2TxNumberInBlock, _message, _merkleProof);
         }
 
-        // Wrap ETH to WETH tokens (smart contract address receives the equivalent amount of WETH)
-        IWETH9(l1WethAddress).deposit{value: amount}();
         // Transfer WETH tokens from the smart contract address to the withdrawal receiver
         IERC20(l1WethAddress).safeTransfer(l1WethWithdrawReceiver, amount);
 

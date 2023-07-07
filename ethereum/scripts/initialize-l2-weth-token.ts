@@ -45,11 +45,15 @@ async function getL1TxInfo(
 ) {
     const zksync = deployer.zkSyncContract(ethers.Wallet.createRandom().connect(provider));
     const l1Calldata = zksync.interface.encodeFunctionData('requestL2Transaction', [
-        to,
         0,
+        {
+            l2Contract: to,
+            l2Value: 0,
+            gasAmount: 0,
+            l2GasLimit: DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
+            l2GasPerPubdataByteLimit: REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
+        },
         l2Calldata,
-        DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
-        REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
         [], // It is assumed that the target has already been deployed
         refundRecipient
     ]);
@@ -77,7 +81,7 @@ async function main() {
     const l2WethTokenProxyAddress = process.env.CONTRACTS_L2_WETH_TOKEN_PROXY_ADDR;
     const l2WethTokenImplAddress = process.env.CONTRACTS_L2_WETH_TOKEN_IMPL_ADDR;
     const tokens = getTokens(process.env.CHAIN_ETH_NETWORK || 'localhost');
-    const l1WethTokenAddress = tokens.find((token: { symbol: string }) => token.symbol == 'WETH')!.address;
+    const l1WethTokenAddress = process.env.CONTRACTS_L1_WETH_TOKEN_ADDR;
 
     program
         .command('prepare-calldata')
@@ -148,16 +152,19 @@ async function main() {
             const calldata = getL2Calldata(l2WethBridgeAddress, l1WethTokenAddress, l2WethTokenImplAddress);
 
             const tx = await zkSync.requestL2Transaction(
-                l2WethTokenProxyAddress,
-                0,
+                requiredValueToInitializeBridge.mul(2),
+                {
+                    l2Contract: l2WethTokenProxyAddress,
+                    l2Value: 0,
+                    gasAmount: requiredValueToInitializeBridge,
+                    l2GasLimit: DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
+                    l2GasPerPubdataByteLimit: REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
+                },
                 calldata,
-                DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
-                REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
                 [],
                 deployWallet.address,
                 {
                     gasPrice,
-                    value: requiredValueToInitializeBridge
                 }
             );
             const receipt = await tx.wait();

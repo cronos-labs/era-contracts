@@ -86,8 +86,7 @@ async function main() {
                 requiredValueToInitializeBridge,
                 requiredValueToInitializeBridge,
                 {
-                    gasPrice,
-                    value: requiredValueToInitializeBridge.mul(2)
+                    gasPrice
                 }
             );
             const receipt = await tx.wait();

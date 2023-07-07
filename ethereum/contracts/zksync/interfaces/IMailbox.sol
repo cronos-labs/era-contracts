@@ -3,6 +3,7 @@
 pragma solidity ^0.8.13;
 
 import {L2Log, L2Message} from "../Storage.sol";
+import {L2TransactionValue} from "../libraries/L2TransactionValue.sol";
 import "./IBase.sol";
 
 /// @dev The enum that represents the transaction execution status
@@ -118,14 +119,12 @@ interface IMailbox is IBase {
     ) external;
 
     function requestL2Transaction(
-        address _contractL2,
-        uint256 _l2Value,
+        uint256 _l1Value,
+        L2TransactionValue memory _txValue,
         bytes calldata _calldata,
-        uint256 _l2GasLimit,
-        uint256 _l2GasPerPubdataByteLimit,
         bytes[] calldata _factoryDeps,
         address _refundRecipient
-    ) external payable returns (bytes32 canonicalTxHash);
+    ) external returns (bytes32 canonicalTxHash);
 
     function l2TransactionBaseCost(
         uint256 _gasPrice,
