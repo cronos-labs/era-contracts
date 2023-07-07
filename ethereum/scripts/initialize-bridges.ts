@@ -217,7 +217,6 @@ async function main() {
                     {
                         gasPrice,
                         nonce: nonce + 1,
-                        value: requiredValueToInitializeBridge.mul(2)
                     }
                 )
             ];

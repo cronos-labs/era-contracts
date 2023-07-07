@@ -86,14 +86,10 @@ contract L1WethBridge is IL1Bridge, AllowListed, ReentrancyGuard {
         address _governor,
         uint256 _deployBridgeImplementationFee,
         uint256 _deployBridgeProxyFee
-    ) external payable reentrancyGuardInitializer {
+    ) external reentrancyGuardInitializer {
         require(_l2ProxyWethAddress != address(0), "L2 proxy WETH address can not be zero");
         require(_governor != address(0), "Governor address can not be zero");
         require(_factoryDeps.length == 2, "Invalid factory deps length provided");
-        require(
-            msg.value == _deployBridgeImplementationFee + _deployBridgeProxyFee,
-            "Miscalculated deploy transactions fees"
-        );
 
         l2ProxyWethAddress = _l2ProxyWethAddress;
 
