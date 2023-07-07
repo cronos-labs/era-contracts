@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { AllowListFactory, L1WethBridgeFactory, MailboxFacetFactory, WETH9Factory } from '../typechain';
+import { AllowListFactory, L1ERC20BridgeFactory, MailboxFacetFactory, WETH9Factory } from '../typechain';
 import * as dotenv from "dotenv";
 import { IZkSyncFactory } from '../typechain/IZkSyncFactory';
 import { utils, Provider as ZkSyncProvider, Wallet as ZKWallet } from 'zksync-web3';
@@ -7,7 +7,7 @@ dotenv.config();
 
 
 const WETH_ADDRESS = process.env.CONTRACTS_L1_WETH_TOKEN_ADDR!;
-const L1_WETH_BRIDGE_ADDRESS = process.env.CONTRACTS_L1_WETH_BRIDGE_IMPL_ADDR!;
+const L1_ERC20_BRIDGE_ADDRESS = process.env.CONTRACTS_L1_ERC20_BRIDGE_IMPL_ADDR!;
 const MNEMONIC = process.env.MNEMONIC!;
 const MAILBOX_ADDRESS = process.env.CONTRACTS_MAILBOX_FACET_ADDR!;
 const ALLOW_LIST_ADDRESS = process.env.CONTRACTS_L1_ALLOW_LIST_ADDR!;
@@ -24,7 +24,7 @@ const prepare = async () => {
     wallet = wallet.connect(provider);
     console.log("balance: ", ethers.utils.formatEther(await wallet.getBalance()));
     const WETH = WETH9Factory.connect(WETH_ADDRESS, wallet);
-    const L1WethBridge = L1WethBridgeFactory.connect(L1_WETH_BRIDGE_ADDRESS, wallet);
+    const L1ERC20Bridge = L1ERC20BridgeFactory.connect(L1_ERC20_BRIDGE_ADDRESS, wallet);
     const MailBox = MailboxFacetFactory.connect(MAILBOX_ADDRESS, wallet);
     const AllowList = AllowListFactory.connect(ALLOW_LIST_ADDRESS, wallet);
     const ZKSync = IZkSyncFactory.connect(ZKSYNC_ADDRESS, wallet);
@@ -37,16 +37,10 @@ const prepare = async () => {
     const balance = await WETH.balanceOf(wallet.address);
     console.log("WETH balance: ", ethers.utils.formatEther(balance), "WETH");
 
-    console.log("Approve L1WethBridge for spending WETH...");
-    tx = await WETH.approve(L1WethBridge.address, ethers.utils.parseEther("9999999999"));
+    console.log("Set access mode for L1ERC20Bridge...");
+    tx = await AllowList.setAccessMode(L1ERC20Bridge.address, 2);
     await tx.wait();
-    let allowance = await WETH.allowance(wallet.address, L1WethBridge.address);
-    console.log("allowance: ", ethers.utils.formatEther(allowance), "WETH");
-
-    console.log("Set access mode for L1WethBridge...");
-    tx = await AllowList.setAccessMode(L1WethBridge.address, 2);
-    await tx.wait();
-    let res = await AllowList.getAccessMode(L1WethBridge.address)
+    let res = await AllowList.getAccessMode(L1ERC20Bridge.address)
     console.log("AccessMode for L1WethBridge: ", res);
 
     console.log("Set access mode for Mailbox...");
@@ -67,9 +61,6 @@ const prepare = async () => {
     v = await AllowList.canCall(wallet.address, ZKSYNC_ADDRESS, MailBox.interface.getSighash("finalizeEthWithdrawal"))
     console.log("canCall finalizeEthWithdrawal: ", v);
 
-    v = await AllowList.canCall(wallet.address, L1WethBridge.address, L1WethBridge.interface.getSighash("deposit"))
-    console.log("canCall deposit: ", v);
-
     v = await AllowList.canCall(wallet.address, ZKSYNC_ADDRESS, ZKSync.interface.getSighash("requestL2Transaction"))
     console.log("canCall: ", v);
 
@@ -79,61 +70,6 @@ const prepare = async () => {
     console.log("deposit limit: ", limit);
 }
 
-const main = async () => {
-    let wallet = ethers.Wallet.fromMnemonic(MNEMONIC, DERIVE_PATH);
-    console.log("wallet: ", wallet.address);
-    const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
-    wallet = wallet.connect(provider);
-    console.log("balance: ", ethers.utils.formatEther(await wallet.getBalance()));
-    const WETH = WETH9Factory.connect(WETH_ADDRESS, wallet);
-    const L1WethBridge = L1WethBridgeFactory.connect(L1_WETH_BRIDGE_ADDRESS, wallet);
-    const allowList = AllowListFactory.connect(await L1WethBridge.allowList(), wallet);
-    const zkSync = IZkSyncFactory.connect(ZKSYNC_ADDRESS, wallet);
-
-    console.log("testing requestL2Transaction...");
-    const MailBox = MailboxFacetFactory.connect(MAILBOX_ADDRESS, wallet);
-
-    console.log("Deposit WETH to L2...")
-    let value = await WETH.balanceOf(L1_WETH_BRIDGE_ADDRESS)
-    console.log("bridge weth value: ", ethers.utils.formatEther(value));
-
-    let l2Bridge = await L1WethBridge.l2Bridge();
-    console.log("l2Bridge: ", l2Bridge);
-
-    const DEPOSIT_L2_GAS_LIMIT = 10_000_000;
-
-    const gasPrice = await wallet.getGasPrice();
-    const contract = new ethers.Contract(process.env.CONTRACTS_DIAMOND_PROXY_ADDR, utils.ZKSYNC_MAIN_ABI, wallet);
-    const expectedCost = await contract.l2TransactionBaseCost(
-        gasPrice,
-        DEPOSIT_L2_GAS_LIMIT,
-        utils.DEFAULT_GAS_PER_PUBDATA_LIMIT
-    );
-
-    console.log("expectedCost: ", ethers.utils.formatEther(expectedCost));
-    
-    
-    let tx = await L1WethBridge.deposit(
-        wallet.address,
-        WETH.address,
-        ethers.utils.parseEther("999999999"),
-        10_000_000,
-        800,
-        wallet.address,
-        ethers.utils.parseEther("1"),
-        {
-            gasLimit: 210000,
-            value: ethers.utils.parseEther("1")
-        }
-    )
-
-    let receipt = await tx.wait();
-    console.log(receipt);
-    
-    value = await WETH.balanceOf(L1_WETH_BRIDGE_ADDRESS)
-    console.log("bridge weth value: ", ethers.utils.formatEther(value));
-}
-
 const testWorkingMailBox = async () => {
     let wallet = ethers.Wallet.fromMnemonic(MNEMONIC, DERIVE_PATH);
     console.log("wallet: ", wallet.address);
@@ -141,8 +77,8 @@ const testWorkingMailBox = async () => {
     wallet = wallet.connect(provider);
     console.log("balance: ", ethers.utils.formatEther(await wallet.getBalance()));
     const WETH = WETH9Factory.connect(WETH_ADDRESS, wallet);
-    const L1WethBridge = L1WethBridgeFactory.connect(L1_WETH_BRIDGE_ADDRESS, wallet);
-    const allowList = AllowListFactory.connect(await L1WethBridge.allowList(), wallet);
+    const L1ERC20Bridge = L1ERC20BridgeFactory.connect(L1_ERC20_BRIDGE_ADDRESS, wallet);
+    const allowList = AllowListFactory.connect(await L1ERC20Bridge.allowList(), wallet);
     const zkSync = IZkSyncFactory.connect(ZKSYNC_ADDRESS, wallet);
 
     console.log("testing requestL2Transaction...");
@@ -183,8 +119,8 @@ const testMailBox = async () => {
     wallet = wallet.connect(provider);
     console.log("balance: ", ethers.utils.formatEther(await wallet.getBalance()));
     const WETH = WETH9Factory.connect(WETH_ADDRESS, wallet);
-    const L1WethBridge = L1WethBridgeFactory.connect(L1_WETH_BRIDGE_ADDRESS, wallet);
-    const allowList = AllowListFactory.connect(await L1WethBridge.allowList(), wallet);
+    const L1ERC20Bridge = L1ERC20BridgeFactory.connect(L1_ERC20_BRIDGE_ADDRESS, wallet);
+    const allowList = AllowListFactory.connect(await L1ERC20Bridge.allowList(), wallet);
     const zkSync = IZkSyncFactory.connect(ZKSYNC_ADDRESS, wallet);
 
     console.log("testing requestL2Transaction...");
@@ -211,15 +147,67 @@ const testMailBox = async () => {
         DEPOSIT_L2_GAS_LIMIT, 
         800, 
         [], 
-        wallet.address, overrides
+        wallet.address,
+        overrides
     )
     let receipt = await tx.wait();
+    console.log(receipt);
+}
+
+const bridgeEthL1ToL2 = async () => {
+    let wallet = ethers.Wallet.fromMnemonic(MNEMONIC, DERIVE_PATH);
+    console.log("Use wallet address : ", wallet.address);
+    const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
+    wallet = wallet.connect(provider);
+    const WETH = WETH9Factory.connect(WETH_ADDRESS, wallet);
+    const l1Balance = await WETH.balanceOf(wallet.address);
+    console.log("Current WETH balance on L1: ", ethers.utils.formatEther(l1Balance));
+
+    console.log("Approve ZKSync for spending WETH...");
+    const zkSync = IZkSyncFactory.connect(ZKSYNC_ADDRESS, wallet);
+    let tx = await WETH.approve(zkSync.address, ethers.utils.parseEther("9999999999"));
+    await tx.wait();
+    let allowance = await WETH.allowance(wallet.address, zkSync.address);
+    console.log("allowance: ", ethers.utils.formatEther(allowance), "WETH");
+
+    console.log("Depositing ETH");
+    const DEPOSIT_L2_GAS_LIMIT = 1_000_000;
+    const gasPrice = await wallet.getGasPrice();
+    const contract = new ethers.Contract(ZKSYNC_ADDRESS, utils.ZKSYNC_MAIN_ABI, wallet);
+    const expectedCost = await contract.l2TransactionBaseCost(
+        gasPrice,
+        DEPOSIT_L2_GAS_LIMIT,
+        utils.DEFAULT_GAS_PER_PUBDATA_LIMIT
+    );
+
+    console.log("expectedCost: ", ethers.utils.formatEther(expectedCost));
+
+    const tx2 = await zkSync.requestL2Transaction(
+        ethers.utils.parseEther("100000"),
+        {
+            contractL2: '0x0000000000000000000000000000000000000000',
+            l2Value: 0,
+            gasAmount: ethers.utils.parseEther("1"),
+            l2GasLimit: 1_000_000,
+            l2GasPerPubdataByteLimit: 800
+
+        },
+        '0x',
+        [],
+        wallet.address,
+        {
+            gasLimit: 210000,
+        }
+    )
+
+    let receipt = await tx2.wait();
     console.log(receipt);
 }
 
 const getBalance = async () => {
     let wallet = ZKWallet.fromMnemonic(MNEMONIC, DERIVE_PATH);
     const l2Provider = new ZkSyncProvider("http://127.0.0.1:3050");
+    console.log("Check balance for wallet address : ", wallet.address);
     let balance = await l2Provider.getBalance(wallet.address)
     console.log("balance on l2: ", ethers.utils.formatEther(balance));
 
@@ -234,15 +222,18 @@ const getBalance = async () => {
     l1wallet = l1wallet.connect(l1provider);
     const WETH = WETH9Factory.connect(WETH_ADDRESS, l1wallet);
 
-    const l1Balance = await WETH.balanceOf(wallet.address);
-    console.log("balance on l1: ", ethers.utils.formatEther(l1Balance), "WETH");
+    const l1Balance = await WETH.balanceOf(l1wallet.address);
+    console.log("Check balance for wallet address : ", wallet.address);
+    console.log("wethbalance on l1: ", ethers.utils.formatEther(l1Balance), "WETH");
+    const l1ethBalance = await l1provider.getBalance(l1wallet.address)
+    console.log("ethbalance on l1: ", ethers.utils.formatEther(l1ethBalance), "ETH");
 
-    const proxyBalance = await WETH.balanceOf(process.env.CONTRACTS_DIAMOND_PROXY_ADDR);
+    const proxyBalance = await WETH.balanceOf(ZKSYNC_ADDRESS);
     console.log("Diamon proxy WETH balance: ", ethers.utils.formatEther(proxyBalance), "WETH");
 
 }
 
-const bridgeL2ToL1 = async () => {
+const bridgeEthL2ToL1 = async () => {
     let zkwallet = ZKWallet.fromMnemonic(MNEMONIC, DERIVE_PATH);
     console.log("wallet: ", zkwallet.address);
     const l2Provider = new ZkSyncProvider("http://127.0.0.1:3050");
@@ -288,6 +279,45 @@ const bridgeL2ToL1 = async () => {
     console.log(finalizereceipt);
 }
 
+const bridgeERC20L1ToL2 = async () => {
+    let wallet = ethers.Wallet.fromMnemonic(MNEMONIC, DERIVE_PATH);
+    console.log("Use wallet address : ", wallet.address);
+    const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
+    wallet = wallet.connect(provider);
+    console.log("Current wallet balance on L2: ", ethers.utils.formatEther(await wallet.getBalance()));
+    const L1ERC20Bridge = L1ERC20BridgeFactory.connect(L1_ERC20_BRIDGE_ADDRESS, wallet);
+
+
+    const DEPOSIT_L2_GAS_LIMIT = 10_000_000;
+    const gasPrice = await wallet.getGasPrice();
+    const contract = new ethers.Contract(process.env.CONTRACTS_DIAMOND_PROXY_ADDR, utils.ZKSYNC_MAIN_ABI, wallet);
+    const expectedCost = await contract.l2TransactionBaseCost(
+        gasPrice,
+        DEPOSIT_L2_GAS_LIMIT,
+        utils.DEFAULT_GAS_PER_PUBDATA_LIMIT
+    );
+
+    console.log("expectedCost: ", ethers.utils.formatEther(expectedCost));
+
+
+    let tx = await L1ERC20Bridge.deposit(
+        wallet.address,
+        '',
+        ethers.utils.parseEther("999999999"),
+        10_000_000,
+        800,
+        wallet.address,
+        ethers.utils.parseEther("1"),
+        {
+            gasLimit: 210000,
+            value: ethers.utils.parseEther("1")
+        }
+    )
+
+    let receipt = await tx.wait();
+    console.log(receipt);
+}
+
 
 //prepare().then(() => {main()});
 
@@ -295,8 +325,8 @@ const bridgeL2ToL1 = async () => {
 //prepare();
 
 // call the bridge function
-//main();
+bridgeEthL1ToL2();
 
-getBalance();
+//getBalance();
 
-//bridgeL2ToL1();
+//bridgeEthL2ToL1();
