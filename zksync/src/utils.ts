@@ -79,7 +79,7 @@ export async function create2DeployFromL1(
     await zkSync.requestL2Transaction(
         expectedCost,
         {
-            contractL2: DEPLOYER_SYSTEM_CONTRACT_ADDRESS,
+            l2Contract: DEPLOYER_SYSTEM_CONTRACT_ADDRESS,
             l2Value: 0,
             gasAmount: expectedCost,
             l2GasLimit: l2GasLimit,

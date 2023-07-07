@@ -7,7 +7,7 @@ import "../libraries/Diamond.sol";
 import "../../common/libraries/L2ContractHelper.sol";
 import "../../common/L2ContractAddresses.sol";
 import "../Config.sol";
-import {TransactionValue} from "../libraries/TransactionValue.sol";
+import {L2TransactionValue} from "../libraries/L2TransactionValue.sol";
 
 /// @author Matter Labs
 contract DiamondUpgradeInit1 is MailboxFacet {
@@ -21,7 +21,7 @@ contract DiamondUpgradeInit1 is MailboxFacet {
         _requestL2Transaction(
             L2_FORCE_DEPLOYER_ADDR,
             0,
-            TransactionValue(L2_DEPLOYER_SYSTEM_CONTRACT_ADDR, 0, 0, _l2GasLimit, REQUIRED_L2_GAS_PRICE_PER_PUBDATA),
+            L2TransactionValue(L2_DEPLOYER_SYSTEM_CONTRACT_ADDR, 0, 0, _l2GasLimit, REQUIRED_L2_GAS_PRICE_PER_PUBDATA),
             _forceDeployCalldata,
             _factoryDeps,
             true,

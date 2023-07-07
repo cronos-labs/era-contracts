@@ -171,7 +171,7 @@ contract L1WethBridge is IL1Bridge, AllowListed, ReentrancyGuard {
         // use the refund mechanism to send the value to the L2
         txHash = zkSync.requestL2Transaction(
             _amount,
-            TransactionValue(l2Bridge, 0, _gasAmount, _l2TxGasLimit, _l2TxGasPerPubdataByte),
+            L2TransactionValue(l2Bridge, 0, _gasAmount, _l2TxGasLimit, _l2TxGasPerPubdataByte),
             l2TxCalldata,
             new bytes[](0),
             refundRecipient

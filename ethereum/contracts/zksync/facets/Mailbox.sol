@@ -95,7 +95,7 @@ contract MailboxFacet is Base, IMailbox {
     /// @notice Transfer ether from the contract to the receiver
     /// @dev Reverts only if the transfer call failed
     function _withdrawFunds(address _to, uint256 _amount) internal {
-        IERC20(s.gasTokenAddress).safeTransferFrom(address(this), _to, _amount);
+        IERC20(s.gasTokenAddress).safeTransfer(_to, _amount);
     }
 
     /// @dev Prove that a specific L2 log was sent in a specific L2 block number
@@ -199,7 +199,7 @@ contract MailboxFacet is Base, IMailbox {
     /// @return canonicalTxHash The hash of the requested L2 transaction. This hash can be used to follow the transaction status
     function requestL2Transaction(
         uint256 _l1Value,
-        TransactionValue memory _txValue,
+        L2TransactionValue memory _txValue,
         bytes calldata _calldata,
         bytes[] calldata _factoryDeps,
         address _refundRecipient
@@ -249,7 +249,7 @@ contract MailboxFacet is Base, IMailbox {
     function _requestL2Transaction(
         address _sender,
         uint256 _l1Value,
-        TransactionValue memory _txValue,
+        L2TransactionValue memory _txValue,
         bytes calldata _calldata,
         bytes[] calldata _factoryDeps,
         bool _isFree,
@@ -280,7 +280,7 @@ contract MailboxFacet is Base, IMailbox {
         params.sender = _sender;
         params.txId = txId;
         params.l2Value = _txValue.l2Value;
-        params.contractAddressL2 = _txValue.contractL2;
+        params.contractAddressL2 = _txValue.l2Contract;
         params.expirationTimestamp = expirationTimestamp;
         params.l2GasLimit = _txValue.l2GasLimit;
         params.l2GasPricePerPubdata = _txValue.l2GasPerPubdataByteLimit;
