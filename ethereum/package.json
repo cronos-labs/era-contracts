@@ -72,6 +72,7 @@
     "test:bridge": "ts-node src.ts/test-bridge.ts"
   },
   "dependencies": {
-    "dotenv": "^16.0.3"
+    "dotenv": "^16.0.3",
+    "zksync-web3": "^0.14.3"
   }
 }

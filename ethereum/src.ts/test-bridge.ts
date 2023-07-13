@@ -196,7 +196,7 @@ const bridgeEthL1ToL2 = async () => {
     const tx2 = await zkSync.requestL2Transaction(
         ethers.utils.parseEther("100000"),
         {
-            contractL2: '0x0000000000000000000000000000000000000000',
+            l2Contract: '0x0000000000000000000000000000000000000000',
             l2Value: 0,
             gasAmount: ethers.utils.parseEther("1"),
             l2GasLimit: 1_000_000,
