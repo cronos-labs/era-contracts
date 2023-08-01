@@ -41,8 +41,7 @@ async function main() {
             await allowListContract.setBatchAccessMode(
                 [
                     deployer.addresses.ZkSync.DiamondProxy,
-                    deployer.addresses.Bridges.ERC20BridgeProxy,
-                    deployer.addresses.Bridges.WethBridgeProxy
+                    deployer.addresses.Bridges.ERC20BridgeProxy
                 ],
                 [AccessMode.Public, AccessMode.Public, AccessMode.Public],
                 { nonce }

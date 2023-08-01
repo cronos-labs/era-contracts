@@ -20,9 +20,9 @@ export function getContractBytecode(contractName: string) {
     return hre.artifacts.readArtifactSync(contractName).bytecode;
 }
 
-type SupportedContracts = 'L2ERC20Bridge' | 'L2StandardERC20' | 'L2WethBridge' | 'L2Weth';
+type SupportedContracts = 'L2ERC20Bridge' | 'L2StandardERC20';
 function checkSupportedContract(contract: any): contract is SupportedContracts {
-    if (!['L2ERC20Bridge', 'L2StandardERC20', 'L2WethBridge', 'L2Weth'].includes(contract)) {
+    if (!['L2ERC20Bridge', 'L2StandardERC20'].includes(contract)) {
         throw new Error(`Unsupported contract: ${contract}`);
     }
 

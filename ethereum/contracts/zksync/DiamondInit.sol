@@ -39,15 +39,13 @@ contract DiamondInit is Base {
         bool _zkPorterIsAvailable,
         bytes32 _l2BootloaderBytecodeHash,
         bytes32 _l2DefaultAccountBytecodeHash,
-        uint256 _priorityTxMaxGasLimit,
-        address _gasTokenAddress
+        uint256 _priorityTxMaxGasLimit
     ) external reentrancyGuardInitializer returns (bytes32) {
         require(address(_verifier) != address(0), "vt");
         require(_governor != address(0), "vy");
 
         s.verifier = _verifier;
         s.governor = _governor;
-        s.gasTokenAddress = _gasTokenAddress;
 
         // We need to initialize the state hash because it is used in the commitment of the next block
         IExecutor.StoredBlockInfo memory storedBlockZero = IExecutor.StoredBlockInfo(
