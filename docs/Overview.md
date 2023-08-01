@@ -209,7 +209,7 @@ The L2 counterpart of the L1 ERC20 bridge.
 - `withdraw` - initiate a withdrawal by burning funds on the contract and sending a corresponding message to L1.
 - `finalizeDeposit` - finalize the deposit and mint funds on L2.
 
-##### L1WethBridge
+##### L1WethBridge (Removed)
 
 The custom bridge exclusively handles transfers of WETH tokens between the two domains. It is designed to streamline and
 enhance the user experience for bridging WETH tokens by minimizing the number of transactions required and reducing
@@ -220,7 +220,7 @@ it is wrapped back into WETH and delivered to the L2 recipient.
 
 Thus, the deposit is made in one transaction, and the user receives L2 WETH that can be unwrapped to ETH.
 
-##### L2WethBridge
+##### L2WethBridge (Removed)
 
 The L2 counterpart of the L1 WETH bridge.
 
