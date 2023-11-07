@@ -46,13 +46,16 @@ async function getL1TxInfo(
 ) {
   const zksync = deployer.zkSyncContract(ethers.Wallet.createRandom().connect(provider));
   const l1Calldata = zksync.interface.encodeFunctionData("requestL2Transaction", [
-    to,
-    0,
+      {
+          l2Contract: to,
+          l2Value: 0,
+          l2GasLimit: DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
+          l2GasPerPubdataByteLimit: REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
+      },
     l2Calldata,
-    DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
-    REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
     [], // It is assumed that the target has already been deployed
     refundRecipient,
+      0,
   ]);
 
   const neededValue = await zksync.l2TransactionBaseCost(
@@ -157,16 +160,18 @@ async function main() {
       const calldata = getL2Calldata(l2WethBridgeAddress, l1WethTokenAddress, l2WethTokenImplAddress);
 
       const tx = await zkSync.requestL2Transaction(
-        l2WethTokenProxyAddress,
-        0,
+          {
+              l2Contract: l2WethTokenProxyAddress,
+              l2Value: 0,
+              l2GasLimit: DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
+              l2GasPerPubdataByteLimit: REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
+          },
         calldata,
-        DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
-        REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
         [],
         deployWallet.address,
+          requiredValueToInitializeBridge.mul(2),
         {
           gasPrice,
-          value: requiredValueToInitializeBridge,
         }
       );
 

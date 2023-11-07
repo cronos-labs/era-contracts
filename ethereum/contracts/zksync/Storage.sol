@@ -143,4 +143,6 @@ struct AppStorage {
     address admin;
     /// @notice Address that the governor or admin proposed as one that will replace admin role
     address pendingAdmin;
+    /// @dev baseToken l1 address
+    address baseTokenAddress;
 }
