@@ -72,13 +72,16 @@ async function getL1TxInfo(
 ) {
   const zksync = deployer.zkSyncContract(ethers.Wallet.createRandom().connect(provider));
   const l1Calldata = zksync.interface.encodeFunctionData("requestL2Transaction", [
-    to,
-    0,
+      {
+          l2Contract: to,
+          l2Value: 0,
+          l2GasLimit: priorityTxMaxGasLimit,
+          l2GasPerPubdataByteLimit: REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT,
+      },
     l2Calldata,
-    priorityTxMaxGasLimit,
-    REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT,
     [], // It is assumed that the target has already been deployed
     refundRecipient,
+      0,
   ]);
 
   const neededValue = await zksync.l2TransactionBaseCost(

@@ -45,6 +45,7 @@ contract DiamondInit is Base {
         bytes32 l2DefaultAccountBytecodeHash;
         uint256 priorityTxMaxGasLimit;
         uint256 initialProtocolVersion;
+        address baseTokenAddress;
     }
 
     /// @dev Initialize the implementation to prevent any possibility of a Parity hack.
@@ -62,6 +63,7 @@ contract DiamondInit is Base {
         s.verifier = _initalizeData.verifier;
         s.governor = _initalizeData.governor;
         s.admin = _initalizeData.admin;
+        s.baseTokenAddress = _initalizeData.baseTokenAddress;
 
         // We need to initialize the state hash because it is used in the commitment of the next batch
         IExecutor.StoredBatchInfo memory storedBatchZero = IExecutor.StoredBatchInfo(
