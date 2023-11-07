@@ -83,7 +83,7 @@ async function main() {
       await deployer.deployAllowList(create2Salt, { gasPrice, nonce: nonce + 1 });
       await deployer.deployZkSyncContract(create2Salt, gasPrice, nonce + 2);
       await deployer.deployBridgeContracts(create2Salt, gasPrice); // Do not pass nonce, since it was increment after deploying zkSync contracts
-      await deployer.deployWethBridgeContracts(create2Salt, gasPrice);
+      //await deployer.deployWethBridgeContracts(create2Salt, gasPrice);
       await deployer.deployValidatorTimelock(create2Salt, { gasPrice });
     });
 

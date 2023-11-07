@@ -47,13 +47,13 @@ async function main() {
         deployer.addresses.Bridges.ERC20BridgeProxy,
         deployWallet
       );
-      const wethBridge = deployer.transparentUpgradableProxyContract(
-        deployer.addresses.Bridges.WethBridgeProxy,
-        deployWallet
-      );
+      //const wethBridge = deployer.transparentUpgradableProxyContract(
+      //  deployer.addresses.Bridges.WethBridgeProxy,
+      //  deployWallet
+      //);
 
       await (await erc20Bridge.changeAdmin(governance.address)).wait();
-      await (await wethBridge.changeAdmin(governance.address)).wait();
+      //await (await wethBridge.changeAdmin(governance.address)).wait();
 
       await (await zkSync.setPendingGovernor(governance.address)).wait();
 

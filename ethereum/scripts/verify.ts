@@ -1,4 +1,12 @@
 import * as hardhat from "hardhat";
+import {Wallet} from "ethers";
+import {web3Provider} from "./utils";
+import path from "path";
+import fs from "fs";
+
+const provider = web3Provider();
+const testConfigPath = path.join(process.env.ZKSYNC_HOME as string, `etc/test_config/constant`);
+const ethTestConfig = JSON.parse(fs.readFileSync(`${testConfigPath}/eth.json`, { encoding: 'utf-8' }));
 import { deployedAddressesFromEnv } from "../src.ts/deploy";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,6 +43,15 @@ async function main() {
     const promise = verifyPromise(address);
     promises.push(promise);
   }
+
+    const deployWallet = Wallet.fromMnemonic(
+        process.env.MNEMONIC ? process.env.MNEMONIC : ethTestConfig.mnemonic,
+        "m/44'/60'/0'/0/1"
+    ).connect(provider);
+    const cro = verifyPromise(addresses.CroToken, [
+        deployWallet.address
+    ]);
+    promises.push(cro);
 
   // TODO: Restore after switching to hardhat tasks (SMA-1711).
   // promises.push(verifyPromise(addresses.AllowList, [governor]));

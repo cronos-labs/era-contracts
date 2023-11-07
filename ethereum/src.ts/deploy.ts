@@ -49,6 +49,7 @@ export interface DeployedAddresses {
   AllowList: string;
   ValidatorTimeLock: string;
   Create2Factory: string;
+  CroToken: string;
 }
 
 export interface DeployerConfig {
@@ -58,6 +59,8 @@ export interface DeployerConfig {
 }
 
 export function deployedAddressesFromEnv(): DeployedAddresses {
+    const tokens = getTokens(process.env.CHAIN_ETH_NETWORK || "localhost");
+    const croToken = tokens.find((token: { symbol: string }) => token.symbol == "CRO")!.address;
   return {
     ZkSync: {
       MailboxFacet: getAddressFromEnv("CONTRACTS_MAILBOX_FACET_ADDR"),
@@ -80,6 +83,7 @@ export function deployedAddressesFromEnv(): DeployedAddresses {
     Create2Factory: getAddressFromEnv("CONTRACTS_CREATE2_FACTORY_ADDR"),
     ValidatorTimeLock: getAddressFromEnv("CONTRACTS_VALIDATOR_TIMELOCK_ADDR"),
     Governance: getAddressFromEnv("CONTRACTS_GOVERNANCE_ADDR"),
+    CroToken: croToken,
   };
 }
 
@@ -140,6 +144,7 @@ export class Deployer {
         l2DefaultAccountBytecodeHash: L2_DEFAULT_ACCOUNT_BYTECODE_HASH,
         priorityTxMaxGasLimit,
         initialProtocolVersion,
+        baseTokenAddress: this.addresses.CroToken,
       },
     ]);
 
