@@ -90,12 +90,11 @@
     "upgrade-4": "ts-node scripts/upgrades/upgrade-4.ts",
     "upgrade-5": "ts-node scripts/upgrades/upgrade-5.ts",
     "upgrade-6": "ts-node scripts/upgrades/upgrade-6.ts",
-    "upgrade-system": "ts-node upgrade-system/index.ts"
+    "upgrade-system": "ts-node upgrade-system/index.ts",
+    "test:bridge": "ts-node src.ts/test-bridge.ts"
   },
   "dependencies": {
-    "dotenv": "^16.0.3"
-  },
-  "optionalDependencies": {
+    "dotenv": "^16.0.3",
     "zksync-web3": "^0.14.3"
   }
 }
