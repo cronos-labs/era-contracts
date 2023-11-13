@@ -127,6 +127,12 @@ async function main() {
      const gasPrice = cmd.gasPrice ? parseUnits(cmd.gasPrice, 'gwei') : await provider.getGasPrice();
       console.log(`Using gas price: ${formatUnits(gasPrice, 'gwei')} gwei`);
 
+      let feedata = await deployWallet.getFeeData();
+      let maxFeePerGas = feedata.maxFeePerGas;
+      console.log(`Using max fee per gas: ${formatUnits(maxFeePerGas, 'gwei')} gwei`);
+      let maxPriorityFeePerGas = feedata.maxPriorityFeePerGas;
+      console.log(`Using max priority fee per gas: ${formatUnits(maxPriorityFeePerGas, 'gwei')} gwei`);
+
       const nonce = cmd.nonce ? parseInt(cmd.nonce) : await deployWallet.getTransactionCount();
       console.log(`Using nonce: ${nonce}`);
 
@@ -205,7 +211,7 @@ async function main() {
           [L2_STANDARD_ERC20_PROXY_FACTORY_BYTECODE, L2_STANDARD_ERC20_IMPLEMENTATION_BYTECODE],
           deployWallet.address,
             requiredValueToPublishBytecodes.mul(2),
-          { gasPrice, nonce }
+          { maxFeePerGas, nonce, maxPriorityFeePerGas }
         ),
         erc20Bridge.initialize(
           [L2_ERC20_BRIDGE_IMPLEMENTATION_BYTECODE, L2_ERC20_BRIDGE_PROXY_BYTECODE, L2_STANDARD_ERC20_PROXY_BYTECODE],
@@ -214,7 +220,8 @@ async function main() {
           requiredValueToInitializeBridge,
           requiredValueToInitializeBridge,
           {
-            gasPrice,
+            maxFeePerGas,
+            maxPriorityFeePerGas,
             nonce: nonce + 1,
           }
         ),

@@ -87,6 +87,10 @@ export async function create2DeployFromL1(
   gasPrice ??= await zkSync.provider.getGasPrice();
   const expectedCost = await zkSync.l2TransactionBaseCost(gasPrice, l2GasLimit, REQUIRED_L2_GAS_PRICE_PER_PUBDATA);
 
+  let feedata = await zkSync.provider.getFeeData();
+  let maxFeePerGas = feedata.maxFeePerGas;
+  let maxPriorityFeePerGas = feedata.maxPriorityFeePerGas;
+
   return await zkSync.requestL2Transaction(
       {
         l2Contract: DEPLOYER_SYSTEM_CONTRACT_ADDRESS,
@@ -98,7 +102,7 @@ export async function create2DeployFromL1(
     [bytecode],
     wallet.address,
       expectedCost,
-    { gasPrice }
+    { maxFeePerGas, maxPriorityFeePerGas }
   );
 }
 

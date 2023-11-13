@@ -143,6 +143,12 @@ async function main() {
       const gasPrice = cmd.gasPrice ? parseUnits(cmd.gasPrice, "gwei") : await provider.getGasPrice();
       console.log(`Using gas price: ${formatUnits(gasPrice, "gwei")} gwei`);
 
+      let feedata = await deployWallet.getFeeData();
+      let maxFeePerGas = feedata.maxFeePerGas;
+      console.log(`Using max fee per gas: ${formatUnits(maxFeePerGas, 'gwei')} gwei`);
+      let maxPriorityFeePerGas = feedata.maxPriorityFeePerGas;
+      console.log(`Using max priority fee per gas: ${formatUnits(maxPriorityFeePerGas, 'gwei')} gwei`);
+
       const nonce = cmd.nonce ? parseInt(cmd.nonce) : await deployWallet.getTransactionCount();
       console.log(`Using deployer nonce: ${nonce}`);
 
@@ -171,7 +177,8 @@ async function main() {
         deployWallet.address,
           requiredValueToInitializeBridge.mul(2),
         {
-          gasPrice,
+            maxFeePerGas,
+            maxPriorityFeePerGas
         }
       );
 
