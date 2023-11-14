@@ -42,6 +42,9 @@ contract L1ERC20Bridge is IL1Bridge, IL1BridgeLegacy, AllowListed, ReentrancyGua
     /// @dev Used for saving the number of deposited funds, to claim them in case the deposit transaction will fail
     mapping(address => mapping(address => mapping(bytes32 => uint256))) internal depositAmount;
 
+    /// @dev baseToken l1 address
+    address public baseTokenAddress;
+
     /// @dev The address of deployed L2 bridge counterpart
     address public l2Bridge;
 
@@ -62,7 +65,8 @@ contract L1ERC20Bridge is IL1Bridge, IL1BridgeLegacy, AllowListed, ReentrancyGua
 
     /// @dev Contract is expected to be used as proxy implementation.
     /// @dev Initialize the implementation to prevent Parity hack.
-    constructor(IZkSync _zkSync, IAllowList _allowList) reentrancyGuardInitializer {
+    constructor(address _baseTokenAddress, IZkSync _zkSync, IAllowList _allowList) reentrancyGuardInitializer {
+        baseTokenAddress = _baseTokenAddress;
         zkSync = _zkSync;
         allowList = _allowList;
     }
@@ -182,6 +186,7 @@ contract L1ERC20Bridge is IL1Bridge, IL1BridgeLegacy, AllowListed, ReentrancyGua
         address _refundRecipient,
         uint256 _l1Amount
     ) public payable nonReentrant senderCanCallFunction(allowList) returns (bytes32 l2TxHash) {
+        require(_l1Token != baseTokenAddress, "l1Token cannot be base token");
         require(_amount != 0, "2T"); // empty deposit amount
         uint256 amount = _depositFunds(msg.sender, IERC20(_l1Token), _amount);
         require(amount == _amount, "1T"); // The token has non-standard transfer logic
