@@ -20,7 +20,7 @@ contract DiamondUpgradeInit1 is MailboxFacet {
     ) external payable returns (bytes32) {
         _requestL2Transaction(
             L2_FORCE_DEPLOYER_ADDR,
-            L2Transaction(L2_DEPLOYER_SYSTEM_CONTRACT_ADDR, 0, _l2GasLimit, REQUIRED_L2_GAS_PRICE_PER_PUBDATA),
+            L2Transaction.Transaction(L2_DEPLOYER_SYSTEM_CONTRACT_ADDR, 0, _l2GasLimit, REQUIRED_L2_GAS_PRICE_PER_PUBDATA),
             _forceDeployCalldata,
             _factoryDeps,
             true,

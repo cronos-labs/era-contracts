@@ -120,7 +120,7 @@ interface IMailbox is IBase {
     ) external;
 
     function requestL2Transaction(
-        L2Transaction memory _l2tx,
+        L2Transaction.Transaction memory _l2tx,
         bytes calldata _calldata,
         bytes[] calldata _factoryDeps,
         address _refundRecipient,

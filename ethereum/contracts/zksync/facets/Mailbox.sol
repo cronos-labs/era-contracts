@@ -231,7 +231,7 @@ contract MailboxFacet is Base, IMailbox {
     /// through the Mailbox to use or withdraw the funds from L2, and the funds would be lost.
     /// @return canonicalTxHash The hash of the requested L2 transaction. This hash can be used to follow the transaction status
     function requestL2Transaction(
-        L2Transaction memory _l2tx,
+        L2Transaction.Transaction memory _l2tx,
         bytes calldata _calldata,
         bytes[] calldata _factoryDeps,
         address _refundRecipient,
@@ -291,7 +291,7 @@ contract MailboxFacet is Base, IMailbox {
 
     function _requestL2Transaction(
         address _sender,
-        L2Transaction memory _l2tx,
+        L2Transaction.Transaction memory _l2tx,
         bytes calldata _calldata,
         bytes[] calldata _factoryDeps,
         bool _isFree,

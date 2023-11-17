@@ -30,7 +30,7 @@ contract DiamondUpgradeInit4 is MailboxFacet {
         // 1. Update bytecode for the deployer smart contract
         _requestL2Transaction(
             L2_FORCE_DEPLOYER_ADDR,
-            L2Transaction(L2_DEPLOYER_SYSTEM_CONTRACT_ADDR, 0, $(PRIORITY_TX_MAX_GAS_LIMIT), REQUIRED_L2_GAS_PRICE_PER_PUBDATA),
+            L2Transaction.Transaction(L2_DEPLOYER_SYSTEM_CONTRACT_ADDR, 0, $(PRIORITY_TX_MAX_GAS_LIMIT), REQUIRED_L2_GAS_PRICE_PER_PUBDATA),
             _upgradeDeployerCalldata,
             _factoryDeps,
             true,
@@ -41,7 +41,7 @@ contract DiamondUpgradeInit4 is MailboxFacet {
         // 2. Redeploy other contracts by one transaction
         _requestL2Transaction(
             L2_FORCE_DEPLOYER_ADDR,
-            L2Transaction(L2_DEPLOYER_SYSTEM_CONTRACT_ADDR, 0, $(PRIORITY_TX_MAX_GAS_LIMIT), REQUIRED_L2_GAS_PRICE_PER_PUBDATA),
+            L2Transaction.Transaction(L2_DEPLOYER_SYSTEM_CONTRACT_ADDR, 0, $(PRIORITY_TX_MAX_GAS_LIMIT), REQUIRED_L2_GAS_PRICE_PER_PUBDATA),
             _upgradeSystemContractsCalldata,
             _factoryDeps,
             true,
