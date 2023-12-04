@@ -29,8 +29,8 @@ async function deployToken(token: TokenDescription, wallet: Wallet): Promise<Tok
   token.implementation = token.implementation || DEFAULT_ERC20;
   const tokenFactory = await hardhat.ethers.getContractFactory(token.implementation, wallet);
   let args = token.implementation !== "WETH9" ? [token.name, token.symbol, token.decimals] : [];
-  if (token.implementation == "Cronos") {
-     args = [wallet.address];
+  if (token.implementation == "CronosTestnet") {
+     args = [];
   }
   const erc20 = await tokenFactory.deploy(...args, { gasLimit: 5000000 });
   await erc20.deployTransaction.wait();
