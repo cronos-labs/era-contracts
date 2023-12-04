@@ -48,9 +48,7 @@ async function main() {
         process.env.MNEMONIC ? process.env.MNEMONIC : ethTestConfig.mnemonic,
         "m/44'/60'/0'/0/1"
     ).connect(provider);
-    const cro = verifyPromise(addresses.CroToken, [
-        deployWallet.address
-    ]);
+    const cro = verifyPromise(addresses.CroToken);
     promises.push(cro);
 
   // TODO: Restore after switching to hardhat tasks (SMA-1711).
@@ -72,6 +70,7 @@ async function main() {
 
   // Bridges
   const promise = verifyPromise(addresses.Bridges.ERC20BridgeImplementation, [
+    addresses.CroToken,
     addresses.ZkSync.DiamondProxy,
     addresses.AllowList,
   ]);

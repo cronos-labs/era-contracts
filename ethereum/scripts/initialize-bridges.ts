@@ -13,7 +13,7 @@ import {
 
 import * as fs from "fs";
 import * as path from "path";
-import { Cronos, CronosFactory } from '../typechain';
+import { CronosTestnet, CronosTestnetFactory } from '../typechain';
 
 const provider = web3Provider();
 const testConfigPath = path.join(process.env.ZKSYNC_HOME as string, "etc/test_config/constant");
@@ -53,7 +53,7 @@ const L2_ERC20_BRIDGE_INTERFACE = readInterface(l2BridgeArtifactsPath, "L2ERC20B
 const DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT = getNumberFromEnv("CONTRACTS_DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT");
 
 
-async function approveSpendingGasToken(cro: Cronos, wallet: Wallet, spender: string, amount: ethers.BigNumber) {
+async function approveSpendingGasToken(cro: CronosTestnet, wallet: Wallet, spender: string, amount: ethers.BigNumber) {
     cro = cro.connect(wallet);
     const approveTx = await cro.approve(spender, amount, {
         gasLimit: 210000,
@@ -102,7 +102,7 @@ async function main() {
       const croTokenAddress = deployer.addresses.CroToken;
       console.log(croTokenAddress);
 
-      let cro = CronosFactory.connect(croTokenAddress, deploy2Wallet)
+      let cro = CronosTestnetFactory.connect(croTokenAddress, deploy2Wallet)
       // mint for deployer wallet
       const tx = await cro.mint(deployWallet.address, ethers.utils.parseEther('10000000000'), {
           gasLimit: 210000,
