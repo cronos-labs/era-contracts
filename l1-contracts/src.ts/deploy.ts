@@ -102,6 +102,7 @@ export class Deployer {
         l2DefaultAccountBytecodeHash: L2_DEFAULT_ACCOUNT_BYTECODE_HASH,
         priorityTxMaxGasLimit,
         initialProtocolVersion,
+        baseTokenAddress: this.addresses.CroToken,
         feeParams,
         blobVersionedHashRetriever: this.addresses.BlobVersionedHashRetriever,
       },
@@ -248,7 +249,7 @@ export class Deployer {
     ethTxOptions.gasLimit ??= 10_000_000;
     const contractAddress = await this.deployViaCreate2(
       "L1ERC20Bridge",
-      [this.addresses.ZkSync.DiamondProxy],
+        [this.addresses.CroToken, this.addresses.ZkSync.DiamondProxy],
       create2Salt,
       ethTxOptions
     );

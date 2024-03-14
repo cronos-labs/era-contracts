@@ -167,6 +167,8 @@ struct AppStorage {
     address admin;
     /// @notice Address that the governor or admin proposed as one that will replace admin role
     address pendingAdmin;
+    /// @dev baseToken l1 address
+    address baseTokenAddress;
     /// @dev Fee params used to derive gasPrice for the L1->L2 transactions. For L2 transactions,
     /// the bootloader gives enough freedom to the operator.
     FeeParams feeParams;

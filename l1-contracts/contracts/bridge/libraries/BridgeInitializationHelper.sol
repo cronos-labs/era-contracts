@@ -7,6 +7,7 @@ import "../../vendor/AddressAliasHelper.sol";
 import "../../common/libraries/L2ContractHelper.sol";
 import {L2_DEPLOYER_SYSTEM_CONTRACT_ADDR} from "../../common/L2ContractAddresses.sol";
 import "../../common/interfaces/IL2ContractDeployer.sol";
+import {L2Transaction} from "../../zksync/libraries/L2Transaction.sol";
 
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
@@ -38,14 +39,16 @@ library BridgeInitializationHelper {
             IL2ContractDeployer.create2,
             (bytes32(0), _bytecodeHash, _constructorData)
         );
-        _zkSync.requestL2Transaction{value: _deployTransactionFee}(
-            L2_DEPLOYER_SYSTEM_CONTRACT_ADDR,
-            0,
+        _zkSync.requestL2Transaction(
+            L2Transaction(
+                L2_DEPLOYER_SYSTEM_CONTRACT_ADDR,
+                0,
+                DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
+                REQUIRED_L2_GAS_PRICE_PER_PUBDATA),
             deployCalldata,
-            DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
-            REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
             _factoryDeps,
-            msg.sender
+            msg.sender,
+            _deployTransactionFee
         );
 
         deployedAddress = L2ContractHelper.computeCreate2Address(

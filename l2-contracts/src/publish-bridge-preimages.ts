@@ -46,13 +46,16 @@ async function main() {
       const zkSync = deployer.zkSyncContract(wallet);
 
       const publishL2ERC20BridgeTx = await zkSync.requestL2Transaction(
-        ethers.constants.AddressZero,
-        0,
+          {
+              l2Contract: ethers.constants.AddressZero,
+              l2Value: 0,
+              l2GasLimit: PRIORITY_TX_MAX_GAS_LIMIT,
+              l2GasPerPubdataByteLimit: REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
+          },
         "0x",
-        PRIORITY_TX_MAX_GAS_LIMIT,
-        REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
         [getContractBytecode("L2ERC20Bridge")],
         wallet.address,
+          0,
         { nonce, gasPrice }
       );
       await publishL2ERC20BridgeTx.wait();

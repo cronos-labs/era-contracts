@@ -10,6 +10,7 @@ import {IL2WethBridge} from "./interfaces/IL2WethBridge.sol";
 import {IL2Bridge} from "./interfaces/IL2Bridge.sol";
 import {IWETH9} from "./interfaces/IWETH9.sol";
 import {IZkSync} from "../zksync/interfaces/IZkSync.sol";
+import {L2Transaction} from "../zksync/libraries/L2Transaction.sol";
 
 import {BridgeInitializationHelper} from "./libraries/BridgeInitializationHelper.sol";
 
@@ -161,7 +162,8 @@ contract L1WethBridge is IL1Bridge, ReentrancyGuard {
         uint256 _amount,
         uint256 _l2TxGasLimit,
         uint256 _l2TxGasPerPubdataByte,
-        address _refundRecipient
+        address _refundRecipient,
+        uint256 _l1Amount
     ) external payable nonReentrant returns (bytes32 txHash) {
         require(_l1Token == l1WethAddress, "Invalid L1 token address");
         require(_amount != 0, "Amount cannot be zero");
@@ -182,13 +184,11 @@ contract L1WethBridge is IL1Bridge, ReentrancyGuard {
             refundRecipient = msg.sender != tx.origin ? AddressAliasHelper.applyL1ToL2Alias(msg.sender) : msg.sender;
         }
         txHash = zkSync.requestL2Transaction{value: _amount + msg.value}(
-            l2Bridge,
-            _amount,
+            L2Transaction(l2Bridge, 0, _l2TxGasLimit, _l2TxGasPerPubdataByte),
             l2TxCalldata,
-            _l2TxGasLimit,
-            _l2TxGasPerPubdataByte,
             new bytes[](0),
-            refundRecipient
+            refundRecipient,
+            _l1Amount
         );
 
         emit DepositInitiated(txHash, msg.sender, _l2Receiver, _l1Token, _amount);

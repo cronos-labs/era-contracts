@@ -95,15 +95,22 @@ export async function create2DeployFromL1(
   gasPrice ??= await zkSync.provider.getGasPrice();
   const expectedCost = await zkSync.l2TransactionBaseCost(gasPrice, l2GasLimit, REQUIRED_L2_GAS_PRICE_PER_PUBDATA);
 
+  let feedata = await zkSync.provider.getFeeData();
+  let maxFeePerGas = feedata.maxFeePerGas;
+  let maxPriorityFeePerGas = feedata.maxPriorityFeePerGas;
+
   return await zkSync.requestL2Transaction(
-    DEPLOYER_SYSTEM_CONTRACT_ADDRESS,
-    0,
+      {
+        l2Contract: DEPLOYER_SYSTEM_CONTRACT_ADDRESS,
+        l2Value: 0,
+        l2GasLimit: l2GasLimit,
+        l2GasPerPubdataByteLimit: REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
+      },
     calldata,
-    l2GasLimit,
-    REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
     [bytecode],
     wallet.address,
-    { value: expectedCost, gasPrice }
+      expectedCost,
+      { maxFeePerGas, maxPriorityFeePerGas }
   );
 }
 
@@ -149,13 +156,16 @@ export async function getL1TxInfo(
 ) {
   const zksync = deployer.zkSyncContract(ethers.Wallet.createRandom().connect(provider));
   const l1Calldata = zksync.interface.encodeFunctionData("requestL2Transaction", [
-    to,
-    0,
+    {
+      l2Contract: to,
+      l2Value: 0,
+      l2GasLimit: priorityTxMaxGasLimit,
+      l2GasPerPubdataByteLimit: REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT,
+    },
     l2Calldata,
-    priorityTxMaxGasLimit,
-    REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT,
     [], // It is assumed that the target has already been deployed
     refundRecipient,
+      0,
   ]);
 
   const neededValue = await zksync.l2TransactionBaseCost(

@@ -4,6 +4,7 @@ pragma solidity 0.8.20;
 
 import {L2Log, L2Message} from "../Storage.sol";
 import {IBase} from "./IBase.sol";
+import {L2Transaction} from "../libraries/L2Transaction.sol";
 
 /// @dev The enum that represents the transaction execution status
 /// @param Failure The transaction execution failed
@@ -149,13 +150,11 @@ interface IMailbox is IBase {
     ) external;
 
     /// @notice Request execution of L2 transaction from L1.
-    /// @param _contractL2 The L2 receiver address
-    /// @param _l2Value `msg.value` of L2 transaction
+    /// @param _l2tx The L2 tx
     /// @param _calldata The input of the L2 transaction
-    /// @param _l2GasLimit Maximum amount of L2 gas that transaction can consume during execution on L2
-    /// @param _l2GasPerPubdataByteLimit The maximum amount L2 gas that the operator may charge the user for single byte of pubdata.
     /// @param _factoryDeps An array of L2 bytecodes that will be marked as known on L2
     /// @param _refundRecipient The address on L2 that will receive the refund for the transaction.
+    /// @param _baseAmount The base amount
     /// @dev If the L2 deposit finalization transaction fails, the `_refundRecipient` will receive the `_l2Value`.
     /// Please note, the contract may change the refund recipient's address to eliminate sending funds to addresses out of control.
     /// - If `_refundRecipient` is a contract on L1, the refund will be sent to the aliased `_refundRecipient`.
@@ -167,13 +166,11 @@ interface IMailbox is IBase {
     /// through the Mailbox to use or withdraw the funds from L2, and the funds would be lost.
     /// @return canonicalTxHash The hash of the requested L2 transaction. This hash can be used to follow the transaction status
     function requestL2Transaction(
-        address _contractL2,
-        uint256 _l2Value,
+        L2Transaction memory _l2tx,
         bytes calldata _calldata,
-        uint256 _l2GasLimit,
-        uint256 _l2GasPerPubdataByteLimit,
         bytes[] calldata _factoryDeps,
-        address _refundRecipient
+        address _refundRecipient,
+        uint256 _baseAmount
     ) external payable returns (bytes32 canonicalTxHash);
 
     /// @notice Estimates the cost in Ether of requesting execution of an L2 transaction from L1
@@ -186,6 +183,9 @@ interface IMailbox is IBase {
         uint256 _l2GasLimit,
         uint256 _l2GasPerPubdataByteLimit
     ) external view returns (uint256);
+
+    function baseTokenAddress(
+    ) external view returns (address);
 
     /// @notice New priority request event. Emitted when a request is placed into the priority queue
     /// @param txId Serial number of the priority operation

@@ -46,11 +46,13 @@ async function getL1TxInfo(
 ) {
   const zksync = deployer.zkSyncContract(ethers.Wallet.createRandom().connect(provider));
   const l1Calldata = zksync.interface.encodeFunctionData("requestL2Transaction", [
-    to,
-    0,
+      {
+          l2Contract: to,
+          l2Value: 0,
+          l2GasLimit: DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
+          l2GasPerPubdataByteLimit: SYSTEM_CONFIG.requiredL2GasPricePerPubdata,
+      },
     l2Calldata,
-    DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
-    SYSTEM_CONFIG.requiredL2GasPricePerPubdata,
     [], // It is assumed that the target has already been deployed
     refundRecipient,
   ]);
@@ -143,6 +145,12 @@ async function main() {
       const nonce = cmd.nonce ? parseInt(cmd.nonce) : await deployWallet.getTransactionCount();
       console.log(`Using deployer nonce: ${nonce}`);
 
+        let feedata = await deployWallet.getFeeData();
+        let maxFeePerGas = feedata.maxFeePerGas;
+        console.log(`Using max fee per gas: ${formatUnits(maxFeePerGas, 'gwei')} gwei`);
+        let maxPriorityFeePerGas = feedata.maxPriorityFeePerGas;
+        console.log(`Using max priority fee per gas: ${formatUnits(maxPriorityFeePerGas, 'gwei')} gwei`);
+
       const deployer = new Deployer({
         deployWallet,
         verbose: true,
@@ -157,16 +165,19 @@ async function main() {
       const calldata = getL2Calldata(l2WethBridgeAddress, l1WethTokenAddress, l2WethTokenImplAddress);
 
       const tx = await zkSync.requestL2Transaction(
-        l2WethTokenProxyAddress,
-        0,
+          {
+              l2Contract: l2WethTokenProxyAddress,
+              l2Value: 0,
+              l2GasLimit: DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
+              l2GasPerPubdataByteLimit: SYSTEM_CONFIG.requiredL2GasPricePerPubdata,
+          },
         calldata,
-        DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT,
-        SYSTEM_CONFIG.requiredL2GasPricePerPubdata,
         [],
         deployWallet.address,
+          requiredValueToInitializeBridge.mul(2),
         {
-          gasPrice,
-          value: requiredValueToInitializeBridge,
+            maxFeePerGas,
+            maxPriorityFeePerGas
         }
       );
 

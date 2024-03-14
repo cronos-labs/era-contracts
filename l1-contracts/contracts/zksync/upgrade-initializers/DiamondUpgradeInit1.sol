@@ -6,6 +6,7 @@ import "../facets/Mailbox.sol";
 import "../libraries/Diamond.sol";
 import "../../common/libraries/L2ContractHelper.sol";
 import "../../common/L2ContractAddresses.sol";
+import {L2Transaction} from "../libraries/L2Transaction.sol";
 import "../Config.sol";
 
 /// @author Matter Labs
@@ -19,14 +20,12 @@ contract DiamondUpgradeInit1 is MailboxFacet {
     ) external payable returns (bytes32) {
         _requestL2Transaction(
             L2_FORCE_DEPLOYER_ADDR,
-            L2_DEPLOYER_SYSTEM_CONTRACT_ADDR,
-            0,
+            L2Transaction(L2_DEPLOYER_SYSTEM_CONTRACT_ADDR, 0, $(PRIORITY_TX_MAX_GAS_LIMIT), REQUIRED_L2_GAS_PRICE_PER_PUBDATA),
             _forceDeployCalldata,
-            _l2GasLimit,
-            REQUIRED_L2_GAS_PRICE_PER_PUBDATA,
             _factoryDeps,
             true,
-            address(0)
+            address(0),
+            0
         );
 
         return Diamond.DIAMOND_INIT_SUCCESS_RETURN_VALUE;

@@ -26,7 +26,8 @@ interface IL1Bridge {
         uint256 _amount,
         uint256 _l2TxGasLimit,
         uint256 _l2TxGasPerPubdataByte,
-        address _refundRecipient
+        address _refundRecipient,
+        uint256 _l1Amount
     ) external payable returns (bytes32 txHash);
 
     function claimFailedDeposit(

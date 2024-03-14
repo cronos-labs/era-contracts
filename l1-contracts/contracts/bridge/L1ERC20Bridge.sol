@@ -16,6 +16,7 @@ import {BridgeInitializationHelper} from "./libraries/BridgeInitializationHelper
 import {IZkSync} from "../zksync/interfaces/IZkSync.sol";
 import {TxStatus} from "../zksync/interfaces/IMailbox.sol";
 import {L2Message} from "../zksync/Storage.sol";
+import {L2Transaction} from "../zksync/libraries/L2Transaction.sol";
 import {UnsafeBytes} from "../common/libraries/UnsafeBytes.sol";
 import {L2ContractHelper} from "../common/libraries/L2ContractHelper.sol";
 import {ReentrancyGuard} from "../common/ReentrancyGuard.sol";
@@ -42,6 +43,9 @@ contract L1ERC20Bridge is IL1Bridge, IL1BridgeLegacy, ReentrancyGuard {
     mapping(address account => mapping(address l1Token => mapping(bytes32 depositL2TxHash => uint256 amount)))
         internal depositAmount;
 
+    /// @dev baseToken l1 address
+    address public baseTokenAddress;
+
     /// @dev The address of deployed L2 bridge counterpart
     address public l2Bridge;
 
@@ -62,7 +66,8 @@ contract L1ERC20Bridge is IL1Bridge, IL1BridgeLegacy, ReentrancyGuard {
 
     /// @dev Contract is expected to be used as proxy implementation.
     /// @dev Initialize the implementation to prevent Parity hack.
-    constructor(IZkSync _zkSync) reentrancyGuardInitializer {
+    constructor(address _baseTokenAddress, IZkSync _zkSync) reentrancyGuardInitializer {
+        baseTokenAddress = _baseTokenAddress;
         zkSync = _zkSync;
     }
 
@@ -85,13 +90,11 @@ contract L1ERC20Bridge is IL1Bridge, IL1BridgeLegacy, ReentrancyGuard {
         address _governor,
         uint256 _deployBridgeImplementationFee,
         uint256 _deployBridgeProxyFee
-    ) external payable reentrancyGuardInitializer {
+    ) external reentrancyGuardInitializer {
         require(_l2TokenBeacon != address(0), "nf");
         require(_governor != address(0), "nh");
         // We are expecting to see the exact three bytecodes that are needed to initialize the bridge
         require(_factoryDeps.length == 3, "mk");
-        // The caller miscalculated deploy transactions fees
-        require(msg.value == _deployBridgeImplementationFee + _deployBridgeProxyFee, "fee");
         l2TokenProxyBytecodeHash = L2ContractHelper.hashL2Bytecode(_factoryDeps[2]);
         l2TokenBeacon = _l2TokenBeacon;
 
@@ -148,7 +151,7 @@ contract L1ERC20Bridge is IL1Bridge, IL1BridgeLegacy, ReentrancyGuard {
         uint256 _l2TxGasLimit,
         uint256 _l2TxGasPerPubdataByte
     ) external payable returns (bytes32 l2TxHash) {
-        l2TxHash = deposit(_l2Receiver, _l1Token, _amount, _l2TxGasLimit, _l2TxGasPerPubdataByte, address(0));
+        l2TxHash = deposit(_l2Receiver, _l1Token, _amount, _l2TxGasLimit, _l2TxGasPerPubdataByte, address(0), 0);
     }
 
     /// @notice Initiates a deposit by locking funds on the contract and sending the request
@@ -161,6 +164,8 @@ contract L1ERC20Bridge is IL1Bridge, IL1BridgeLegacy, ReentrancyGuard {
     /// @param _l2TxGasLimit The L2 gas limit to be used in the corresponding L2 transaction
     /// @param _l2TxGasPerPubdataByte The gasPerPubdataByteLimit to be used in the corresponding L2 transaction
     /// @param _refundRecipient The address on L2 that will receive the refund for the transaction.
+    /// @param _l1Amount The gas token amount to be transferred from L1 to L2, it should be enough to cover the gas cost of the L2 transaction
+    /// it will also be the address to receive `_l2Value`. If zero, the refund will be sent to the sender of the transaction.
     /// @dev If the L2 deposit finalization transaction fails, the `_refundRecipient` will receive the `_l2Value`.
     /// Please note, the contract may change the refund recipient's address to eliminate sending funds to addresses
     /// out of control.
@@ -181,8 +186,10 @@ contract L1ERC20Bridge is IL1Bridge, IL1BridgeLegacy, ReentrancyGuard {
         uint256 _amount,
         uint256 _l2TxGasLimit,
         uint256 _l2TxGasPerPubdataByte,
-        address _refundRecipient
+        address _refundRecipient,
+        uint256 _l1Amount
     ) public payable nonReentrant returns (bytes32 l2TxHash) {
+        require(_l1Token != baseTokenAddress, "l1Token cannot be base token");
         require(_amount != 0, "2T"); // empty deposit amount
         uint256 amount = _depositFunds(msg.sender, IERC20(_l1Token), _amount);
         require(amount == _amount, "1T"); // The token has non-standard transfer logic
@@ -196,13 +203,11 @@ contract L1ERC20Bridge is IL1Bridge, IL1BridgeLegacy, ReentrancyGuard {
             refundRecipient = msg.sender != tx.origin ? AddressAliasHelper.applyL1ToL2Alias(msg.sender) : msg.sender;
         }
         l2TxHash = zkSync.requestL2Transaction{value: msg.value}(
-            l2Bridge,
-            0, // L2 msg.value
+            L2Transaction(l2Bridge, 0, _l2TxGasLimit, _l2TxGasPerPubdataByte),
             l2TxCalldata,
-            _l2TxGasLimit,
-            _l2TxGasPerPubdataByte,
             new bytes[](0),
-            refundRecipient
+            refundRecipient,
+            _l1Amount
         );
 
         // Save the deposited amount to claim funds on L1 if the deposit failed on L2

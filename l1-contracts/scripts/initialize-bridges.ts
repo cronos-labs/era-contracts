@@ -13,6 +13,7 @@ import {
 
 import * as fs from "fs";
 import * as path from "path";
+import { CronosTestnet, CronosTestnetFactory } from '../typechain';
 
 const provider = web3Provider();
 const testConfigPath = path.join(process.env.ZKSYNC_HOME as string, "etc/test_config/constant");
@@ -51,6 +52,16 @@ const L2_STANDARD_ERC20_PROXY_FACTORY_BYTECODE = readBytecode(
 const L2_ERC20_BRIDGE_INTERFACE = readInterface(l2BridgeArtifactsPath, "L2ERC20Bridge");
 const DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT = getNumberFromEnv("CONTRACTS_DEPLOY_L2_BRIDGE_COUNTERPART_GAS_LIMIT");
 
+async function approveSpendingGasToken(cro: CronosTestnet, wallet: Wallet, spender: string, amount: ethers.BigNumber) {
+    cro = cro.connect(wallet);
+    const approveTx = await cro.approve(spender, amount, {
+        gasLimit: 210000,
+    });
+    await approveTx.wait()
+    let allowance = await cro.allowance(wallet.address, spender);
+    console.log(`Wallet ${wallet.address} allowance for spender ${spender}: ${ethers.utils.formatEther(allowance)}`);
+}
+
 async function main() {
   const program = new Command();
 
@@ -70,18 +81,59 @@ async function main() {
           ).connect(provider);
       console.log(`Using deployer wallet: ${deployWallet.address}`);
 
-      const gasPrice = cmd.gasPrice ? parseUnits(cmd.gasPrice, "gwei") : await provider.getGasPrice();
-      console.log(`Using gas price: ${formatUnits(gasPrice, "gwei")} gwei`);
-
-      const nonce = cmd.nonce ? parseInt(cmd.nonce) : await deployWallet.getTransactionCount();
-      console.log(`Using nonce: ${nonce}`);
-
       const deployer = new Deployer({
         deployWallet,
         verbose: true,
       });
 
+
+      // mint cro token, with cro admin wallet
+      const deploy2Wallet = cmd.privateKey
+            ? new Wallet(cmd.privateKey, provider)
+            : Wallet.fromMnemonic(
+                process.env.MNEMONIC ? process.env.MNEMONIC : ethTestConfig.mnemonic,
+                "m/44'/60'/0'/0/1"
+            ).connect(provider);
+
       const zkSync = deployer.zkSyncContract(deployWallet);
+
+        const croTokenAddress = deployer.addresses.CroToken;
+        console.log(croTokenAddress);
+
+        let cro = CronosTestnetFactory.connect(croTokenAddress, deploy2Wallet)
+        // mint for deployer wallet
+        const tx = await cro.mint(deployWallet.address, ethers.utils.parseEther('10000000000'), {
+            gasLimit: 210000,
+        });
+        await tx.wait()
+        const croBalance = await cro.balanceOf(deployWallet.address);
+        console.log(`[deployer]cro Balance: ${ethers.utils.formatEther(croBalance)}`)
+
+        // mint for deployer2 wallet
+        const tx2 = await cro.mint(deploy2Wallet.address, ethers.utils.parseEther('10000000000'), {
+            gasLimit: 210000,
+        });
+        await tx2.wait()
+        const croBalance2 = await cro.balanceOf(deploy2Wallet.address);
+        console.log(`[deployer2]cro Balance: ${ethers.utils.formatEther(croBalance2)}`)
+
+        // approve bridge for spending with the deployer wallet
+        await approveSpendingGasToken(cro, deployWallet, zkSync.address, ethers.constants.MaxUint256);
+        await approveSpendingGasToken(cro, deploy2Wallet, zkSync.address, ethers.constants.MaxUint256);
+
+
+        const gasPrice = cmd.gasPrice ? parseUnits(cmd.gasPrice, 'gwei') : await provider.getGasPrice();
+        console.log(`Using gas price: ${formatUnits(gasPrice, 'gwei')} gwei`);
+
+        const nonce = cmd.nonce ? parseInt(cmd.nonce) : await deployWallet.getTransactionCount();
+        console.log(`Using nonce: ${nonce}`);
+
+        let feedata = await deployWallet.getFeeData();
+        let maxFeePerGas = feedata.maxFeePerGas;
+        console.log(`Using max fee per gas: ${formatUnits(maxFeePerGas, 'gwei')} gwei`);
+        let maxPriorityFeePerGas = feedata.maxPriorityFeePerGas;
+        console.log(`Using max priority fee per gas: ${formatUnits(maxPriorityFeePerGas, 'gwei')} gwei`);
+
       const erc20Bridge = cmd.erc20Bridge
         ? deployer.defaultERC20Bridge(deployWallet).attach(cmd.erc20Bridge)
         : deployer.defaultERC20Bridge(deployWallet);
@@ -143,16 +195,21 @@ async function main() {
         SYSTEM_CONFIG.requiredL2GasPricePerPubdata
       );
 
+        console.log(`Required value for publishing bytecode: ${requiredValueToPublishBytecodes}`);
+
       const independentInitialization = [
         zkSync.requestL2Transaction(
-          ethers.constants.AddressZero,
-          0,
+            {
+                l2Contract: ethers.constants.AddressZero,
+                l2Value: 0,
+                l2GasLimit: priorityTxMaxGasLimit,
+                l2GasPerPubdataByteLimit: SYSTEM_CONFIG.requiredL2GasPricePerPubdata,
+            },
           "0x",
-          priorityTxMaxGasLimit,
-          SYSTEM_CONFIG.requiredL2GasPricePerPubdata,
           [L2_STANDARD_ERC20_PROXY_FACTORY_BYTECODE, L2_STANDARD_ERC20_IMPLEMENTATION_BYTECODE],
           deployWallet.address,
-          { gasPrice, nonce, value: requiredValueToPublishBytecodes }
+            requiredValueToPublishBytecodes.mul(2),
+            { maxFeePerGas, nonce, maxPriorityFeePerGas }
         ),
         erc20Bridge.initialize(
           [L2_ERC20_BRIDGE_IMPLEMENTATION_BYTECODE, L2_ERC20_BRIDGE_PROXY_BYTECODE, L2_STANDARD_ERC20_PROXY_BYTECODE],
@@ -161,9 +218,9 @@ async function main() {
           requiredValueToInitializeBridge,
           requiredValueToInitializeBridge,
           {
-            gasPrice,
-            nonce: nonce + 1,
-            value: requiredValueToInitializeBridge.mul(2),
+              maxFeePerGas,
+              maxPriorityFeePerGas,
+            nonce: nonce + 1
           }
         ),
       ];

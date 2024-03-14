@@ -49,17 +49,21 @@ async function main() {
         verbose: true,
       });
 
+        let feedata = await deployWallet.getFeeData();
+        let maxFeePerGas = feedata.maxFeePerGas;
+        let maxPriorityFeePerGas = feedata.maxPriorityFeePerGas;
+
       // Create2 factory already deployed on the public networks, only deploy it on local node
       if (process.env.CHAIN_ETH_NETWORK === "localhost") {
-        await deployer.deployCreate2Factory({ gasPrice, nonce });
+        await deployer.deployCreate2Factory({ maxPriorityFeePerGas, nonce, maxFeePerGas });
         nonce++;
 
-        await deployer.deployMulticall3(create2Salt, { gasPrice, nonce });
+        await deployer.deployMulticall3(create2Salt, { maxPriorityFeePerGas, nonce, maxFeePerGas });
         nonce++;
       }
 
       if (cmd.onlyVerifier) {
-        await deployer.deployVerifier(create2Salt, { gasPrice, nonce });
+        await deployer.deployVerifier(create2Salt, { maxPriorityFeePerGas, nonce, maxFeePerGas });
         return;
       }
 
@@ -67,24 +71,22 @@ async function main() {
       const diamondUpgradeContractVersion = cmd.diamondUpgradeInit || 1;
       if (diamondUpgradeContractVersion) {
         await deployer.deployDiamondUpgradeInit(create2Salt, diamondUpgradeContractVersion, {
-          gasPrice,
-          nonce,
+            maxPriorityFeePerGas, nonce, maxFeePerGas
         });
         nonce++;
       }
 
       await deployer.deployDefaultUpgrade(create2Salt, {
-        gasPrice,
-        nonce,
+          maxPriorityFeePerGas, nonce, maxFeePerGas
       });
       nonce++;
 
-      await deployer.deployBlobVersionedHashRetriever(create2Salt, { gasPrice, nonce: nonce++ });
-      await deployer.deployGovernance(create2Salt, { gasPrice, nonce });
+      await deployer.deployBlobVersionedHashRetriever(create2Salt, { maxPriorityFeePerGas, nonce: nonce++, maxFeePerGas });
+      await deployer.deployGovernance(create2Salt, { maxPriorityFeePerGas, nonce, maxFeePerGas });
       await deployer.deployZkSyncContract(create2Salt, gasPrice, nonce + 1);
       await deployer.deployBridgeContracts(create2Salt, gasPrice); // Do not pass nonce, since it was increment after deploying zkSync contracts
-      await deployer.deployWethBridgeContracts(create2Salt, gasPrice);
-      await deployer.deployValidatorTimelock(create2Salt, { gasPrice });
+      //await deployer.deployWethBridgeContracts(create2Salt, gasPrice);
+      await deployer.deployValidatorTimelock(create2Salt, { maxPriorityFeePerGas, maxFeePerGas });
     });
 
   await program.parseAsync(process.argv);
