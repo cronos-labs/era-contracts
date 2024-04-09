@@ -7,6 +7,8 @@ import {BridgehubL2TransactionRequest} from "contracts/common/Messaging.sol";
 import {REQUIRED_L2_GAS_PRICE_PER_PUBDATA} from "contracts/common/Config.sol";
 import {TransactionFiltererTrue} from "contracts/dev-contracts/test/DummyTransactionFiltererTrue.sol";
 import {TransactionFiltererFalse} from "contracts/dev-contracts/test/DummyTransactionFiltererFalse.sol";
+import {TransactionFiltererDenyList} from "contracts/dev-contracts/TransactionFiltererDenyList.sol";
+
 
 contract BridgehubRequestL2TransactionTest is MailboxTest {
     function test_successWithoutFilterer() public {
@@ -73,5 +75,106 @@ contract BridgehubRequestL2TransactionTest is MailboxTest {
             factoryDeps: factoryDeps,
             refundRecipient: sender
         });
+    }
+    
+    function test_successWithFiltererDenyList() public {
+        address bridgehub = makeAddr("bridgehub");
+
+        address owner = makeAddr("owner");
+        address[] memory denylist = new address[](1);
+        denylist[0] = makeAddr("deny1");
+        TransactionFiltererDenyList td = new TransactionFiltererDenyList(owner, denylist);
+
+        utilsFacet.util_setBridgehub(bridgehub);
+        utilsFacet.util_setTransactionFilterer(address(td));
+        utilsFacet.util_setBaseTokenGasPriceMultiplierDenominator(1);
+        utilsFacet.util_setPriorityTxMaxGasLimit(100000000);
+
+        BridgehubL2TransactionRequest memory req = getBridgehubRequestL2TransactionRequest();
+
+        vm.deal(bridgehub, 100 ether);
+        vm.prank(address(bridgehub));
+        bytes32 canonicalTxHash = mailboxFacet.bridgehubRequestL2Transaction(req);
+        assertTrue(canonicalTxHash != bytes32(0), "canonicalTxHash should not be 0");
+    }
+
+    function test_revertWithFiltererDenyList() public {
+        address bridgehub = makeAddr("bridgehub");
+
+        address owner = makeAddr("owner");
+        address[] memory denylist = new address[](1);
+        denylist[0] = makeAddr("sender");
+        TransactionFiltererDenyList td = new TransactionFiltererDenyList(owner, denylist);
+
+        utilsFacet.util_setBridgehub(bridgehub);
+        utilsFacet.util_setTransactionFilterer(address(td));
+        utilsFacet.util_setBaseTokenGasPriceMultiplierDenominator(1);
+        utilsFacet.util_setPriorityTxMaxGasLimit(100000000);
+
+        BridgehubL2TransactionRequest memory req = getBridgehubRequestL2TransactionRequest();
+
+        vm.deal(bridgehub, 100 ether);
+        vm.prank(address(bridgehub));
+        vm.expectRevert(bytes("tf"));
+        mailboxFacet.bridgehubRequestL2Transaction(req);
+    }
+
+    function test_successWithFiltererDenyListAfterUpdateDenyList() public {
+        address bridgehub = makeAddr("bridgehub");
+
+        address owner = makeAddr("owner");
+        address[] memory denylist = new address[](1);
+        denylist[0] = makeAddr("sender");
+        TransactionFiltererDenyList td = new TransactionFiltererDenyList(owner, denylist);
+
+        utilsFacet.util_setBridgehub(bridgehub);
+        utilsFacet.util_setTransactionFilterer(address(td));
+        utilsFacet.util_setBaseTokenGasPriceMultiplierDenominator(1);
+        utilsFacet.util_setPriorityTxMaxGasLimit(100000000);
+
+        BridgehubL2TransactionRequest memory req = getBridgehubRequestL2TransactionRequest();
+
+        vm.deal(bridgehub, 100 ether);
+        vm.prank(address(bridgehub));
+        vm.expectRevert(bytes("tf"));
+        mailboxFacet.bridgehubRequestL2Transaction(req);
+        
+        vm.deal(owner, 1 ether);
+        vm.prank(address(owner));
+        td.updateDenyList(denylist,false);
+
+        vm.prank(address(bridgehub));
+        bytes32 canonicalTxHash = mailboxFacet.bridgehubRequestL2Transaction(req);
+        assertTrue(canonicalTxHash != bytes32(0), "canonicalTxHash should not be 0");
+    }
+
+    function test_revertWithFiltererDenyListAfterUpdateDenyList() public {
+        address bridgehub = makeAddr("bridgehub");
+
+        address owner = makeAddr("owner");
+        address[] memory denylist = new address[](1);
+        denylist[0] = makeAddr("deny1");
+        TransactionFiltererDenyList td = new TransactionFiltererDenyList(owner, denylist);
+
+        utilsFacet.util_setBridgehub(bridgehub);
+        utilsFacet.util_setTransactionFilterer(address(td));
+        utilsFacet.util_setBaseTokenGasPriceMultiplierDenominator(1);
+        utilsFacet.util_setPriorityTxMaxGasLimit(100000000);
+
+        BridgehubL2TransactionRequest memory req = getBridgehubRequestL2TransactionRequest();
+
+        vm.deal(bridgehub, 100 ether);
+        vm.prank(address(bridgehub));
+        bytes32 canonicalTxHash = mailboxFacet.bridgehubRequestL2Transaction(req);
+        assertTrue(canonicalTxHash != bytes32(0), "canonicalTxHash should not be 0");
+        
+        denylist[0] = makeAddr("sender");
+        vm.deal(owner, 1 ether);
+        vm.prank(address(owner));
+        td.updateDenyList(denylist,true);
+
+        vm.prank(address(bridgehub));
+        vm.expectRevert(bytes("tf"));
+        mailboxFacet.bridgehubRequestL2Transaction(req);
     }
 }
